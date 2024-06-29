@@ -32,7 +32,7 @@
 
 #include <QSslSocket>
 #include <QSysInfo>
-#include <QTextCodec>
+#include <QStringConverter>
 #include <QVariantMap>
 
 #include "../env.h"
@@ -265,6 +265,6 @@ File* System::createFileInstance(QFile* f)
 {
     // Get the Encoding used by the Terminal at this point in time
     Encoding e(Terminal::instance()->getEncoding());
-    QTextCodec* codec = e.getCodec();
+    auto codec = e.getCodec();
     return new File(f, codec, this);
 }

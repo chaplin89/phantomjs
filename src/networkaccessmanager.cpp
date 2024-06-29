@@ -33,11 +33,12 @@
 #include <QDesktopServices>
 #include <QNetworkDiskCache>
 #include <QNetworkRequest>
-#include <QRegExp>
+#include <QRegularExpression>
 #include <QSslCertificate>
 #include <QSslCipher>
 #include <QSslKey>
 #include <QSslSocket>
+#include <QStandardPaths>
 
 #include "config.h"
 #include "cookiejar.h"
@@ -143,7 +144,6 @@ const ssl_protocol_option ssl_protocol_options[] = {
     { "tlsv1.1", QSsl::TlsV1_1 },
     { "tlsv1.0", QSsl::TlsV1_0 },
     { "tlsv1", QSsl::TlsV1_0 },
-    { "sslv3", QSsl::SslV3 },
     { "any", QSsl::AnyProtocol },
     { 0, QSsl::UnknownProtocol }
 };
@@ -212,7 +212,7 @@ void NetworkAccessManager::prepareSslConfiguration(const Config* config)
         QList<QSslCipher> cipherList;
         foreach (const QString& cipherName,
             config->sslCiphers().split(QLatin1String(":"),
-                QString::SkipEmptyParts)) {
+                Qt::SkipEmptyParts)) {
             QSslCipher cipher(cipherName);
             if (!cipher.isNull()) {
                 cipherList << cipher;
@@ -225,14 +225,14 @@ void NetworkAccessManager::prepareSslConfiguration(const Config* config)
 
     if (!config->sslCertificatesPath().isEmpty()) {
         QList<QSslCertificate> caCerts = QSslCertificate::fromPath(
-            config->sslCertificatesPath(), QSsl::Pem, QRegExp::Wildcard);
+            config->sslCertificatesPath(), QSsl::Pem, QSslCertificate::PatternSyntax::Wildcard);
 
         m_sslConfiguration.setCaCertificates(caCerts);
     }
 
     if (!config->sslClientCertificateFile().isEmpty()) {
         QList<QSslCertificate> clientCerts = QSslCertificate::fromPath(
-            config->sslClientCertificateFile(), QSsl::Pem, QRegExp::Wildcard);
+            config->sslClientCertificateFile(), QSsl::Pem, QSslCertificate::PatternSyntax::Wildcard);
 
         if (!clientCerts.isEmpty()) {
             QSslCertificate clientCert = clientCerts.first();

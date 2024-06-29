@@ -37,14 +37,14 @@
 
 // File
 // public:
-File::File(QFile* openfile, QTextCodec* codec, QObject* parent)
+File::File(QFile* openfile, QStringConverter::Encoding codec, QObject* parent)
     : QObject(parent)
     , m_file(openfile)
     , m_fileStream(0)
 {
     if (codec) {
         m_fileStream = new QTextStream(m_file);
-        m_fileStream->setCodec(codec);
+        m_fileStream->setEncoding(codec);
     }
 }
 
@@ -236,21 +236,18 @@ bool File::setEncoding(const QString& encoding)
     // Since there can be multiple names for the same codec (i.e., "utf8" and
     // "utf-8"), we need to get the codec in the system first and use its
     // canonical name
-    QTextCodec* codec = QTextCodec::codecForName(encoding.toLatin1());
-    if (!codec) {
-        return false;
-    }
+    QStringConverter::Encoding codec = QStringConverter::encodingForName(encoding.toLatin1()).value_or(QStringConverter::Encoding::Utf8);
 
     // Check whether encoding actually needs to be changed
-    const QString encodingBeforeUpdate(m_fileStream->codec()->name());
-    if (0 == encodingBeforeUpdate.compare(QString(codec->name()), Qt::CaseInsensitive)) {
+    const QString encodingBeforeUpdate(QStringConverter::nameForEncoding(m_fileStream->encoding()));
+    if (0 == encodingBeforeUpdate.compare(QStringConverter::nameForEncoding(codec), Qt::CaseInsensitive)) {
         return false;
     }
 
-    m_fileStream->setCodec(codec);
+    m_fileStream->setEncoding(codec);
 
     // Return whether update was successful
-    const QString encodingAfterUpdate(m_fileStream->codec()->name());
+    const QString encodingAfterUpdate(QStringConverter::nameForEncoding(m_fileStream->encoding()));
     return 0 != encodingBeforeUpdate.compare(encodingAfterUpdate, Qt::CaseInsensitive);
 }
 
@@ -259,7 +256,7 @@ QString File::getEncoding() const
     QString encoding;
 
     if (m_fileStream) {
-        encoding = QString(m_fileStream->codec()->name());
+        encoding = QString(QStringConverter::nameForEncoding(m_fileStream->encoding()));
     }
 
     return encoding;
@@ -460,7 +457,7 @@ QObject* FileSystem::_open(const QString& path, const QVariantMap& opts) const
 
     const QVariant modeVar = opts["mode"];
     // Ensure only strings
-    if (modeVar.type() != QVariant::String) {
+    if (modeVar.typeId() != QVariant::String) {
         qDebug() << "FileSystem::open - "
                  << "Mode must be a string!" << modeVar;
         return 0;
@@ -518,16 +515,11 @@ QObject* FileSystem::_open(const QString& path, const QVariantMap& opts) const
         return 0;
     }
 
-    QTextCodec* codec = 0;
+    QStringConverter::Encoding codec;
     if (!isBinary) {
         // default to UTF-8 encoded files
-        const QString charset = opts.value("charset", "UTF-8").toString();
-        codec = QTextCodec::codecForName(charset.toLatin1());
-        if (!codec) {
-            qDebug() << "FileSystem::open - "
-                     << "Unknown charset:" << charset;
-            return 0;
-        }
+        const QString charset = opts.value("charset", "Utf8").toString();
+        codec = QStringConverter::encodingForName(charset.toLatin1()).value();
     }
 
     // Try to Open

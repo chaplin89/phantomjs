@@ -28,6 +28,8 @@
 */
 
 #include "childprocess.h"
+#include <QStringConverter>
+#include <QStringDecoder>
 
 //
 // ChildProcessContext
@@ -51,7 +53,7 @@ ChildProcessContext::~ChildProcessContext()
 
 qint64 ChildProcessContext::pid() const
 {
-    Q_PID pid = m_proc.pid();
+    pid_t pid = m_proc.processId();
 
 #if !defined(Q_OS_WIN) && !defined(Q_OS_WINCE)
     return pid;
@@ -89,19 +91,12 @@ bool ChildProcessContext::_start(const QString& cmd, const QStringList& args)
 qint64 ChildProcessContext::_write(const QString& chunk, const QString& encoding)
 {
     // Try to get codec for encoding
-    QTextCodec* codec = QTextCodec::codecForName(encoding.toLatin1());
+    auto codec_container = QStringConverter::encodingForName(encoding.toLatin1());
+    auto codec = codec_container.value_or(QStringConverter::Utf8);
 
-    // If unavailable, attempt UTF-8 codec
-    if (!codec) {
-        codec = QTextCodec::codecForName("UTF-8");
+    QStringEncoder encoder(codec);
 
-        // Don't even try to write if UTF-8 codec is unavailable
-        if (!codec) {
-            return -1;
-        }
-    }
-
-    qint64 bytesWritten = m_proc.write(codec->fromUnicode(chunk));
+    qint64 bytesWritten = m_proc.write(encoder.encode(chunk));
 
     return bytesWritten;
 }

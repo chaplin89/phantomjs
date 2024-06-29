@@ -32,14 +32,7 @@
 
 Encoding::Encoding()
 {
-    QTextCodec* codec = QTextCodec::codecForName(DEFAULT_CODEC_NAME);
-
-    // Fall back to locale codec
-    if (!codec) {
-        codec = QTextCodec::codecForLocale();
-    }
-
-    m_codec = codec;
+    m_codec = QStringConverter::encodingForName(DEFAULT_CODEC_NAME).value();
 }
 
 Encoding::Encoding(const QString& encoding)
@@ -49,52 +42,39 @@ Encoding::Encoding(const QString& encoding)
 
 Encoding::~Encoding()
 {
-    if (m_codec) {
-        // TODO: Encoding class does not inherit QObject, so
-        // we have to nullifyt m_codec member manually;
-        m_codec = Q_NULLPTR;
-    }
 }
 
 QString Encoding::decode(const QByteArray& bytes) const
 {
-    return getCodec()->toUnicode(bytes);
+    QStringDecoder decoder(this->getCodec());
+    return decoder.decode(bytes);
 }
 
 QByteArray Encoding::encode(const QString& string) const
 {
-    return getCodec()->fromUnicode(string);
+    QStringEncoder encoder(this->getCodec());
+    return encoder.encode(string);
 }
 
 QString Encoding::getName() const
 {
     // TODO Is it safe to assume UTF-8 here?
-    return QString::fromUtf8(getCodec()->name());
+    return QString::fromUtf8(QStringConverter::nameForEncoding(this->getCodec()));
 }
 
 void Encoding::setEncoding(const QString& encoding)
 {
     if (!encoding.isEmpty()) {
-        QTextCodec* codec = QTextCodec::codecForName(encoding.toLatin1());
-
-        if (codec) {
-            m_codec = codec;
-        }
+        m_codec = QStringConverter::encodingForName(encoding.toLatin1()).value_or(QStringConverter::Encoding::Utf8);
     }
 }
 
-const Encoding Encoding::UTF8 = Encoding("UTF-8");
+const Encoding Encoding::UTF8 = Encoding("Utf8");
 
 // private:
-QTextCodec* Encoding::getCodec() const
+QStringConverter::Encoding Encoding::getCodec() const
 {
-    QTextCodec* codec = m_codec;
-
-    if (!codec) {
-        codec = QTextCodec::codecForLocale();
-    }
-
-    return codec;
+    return m_codec;
 }
 
-const QByteArray Encoding::DEFAULT_CODEC_NAME = "UTF-8";
+const QByteArray Encoding::DEFAULT_CODEC_NAME = "Utf8";

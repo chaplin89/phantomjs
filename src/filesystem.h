@@ -32,7 +32,10 @@
 
 #include <QFile>
 #include <QStringList>
-#include <QTextCodec>
+#include <QStringConverter>
+#include <QStringEncoder>
+#include <QStringDecoder>
+#include <QString>
 #include <QTextStream>
 #include <QVariant>
 
@@ -42,7 +45,7 @@ class File : public QObject {
 public:
     // handle a textfile with given codec
     // if @p codec is null, the file is considered to be binary
-    File(QFile* openfile, QTextCodec* codec, QObject* parent = 0);
+    File(QFile* openfile, QStringConverter::Encoding codec, QObject* parent = 0);
     virtual ~File();
 
 public slots:

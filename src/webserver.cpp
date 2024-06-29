@@ -49,9 +49,8 @@ QString unescape(QByteArray in)
 {
     // first step: decode '+' to spaces
     for (int i = 0; i < in.length(); ++i) {
-        QByteRef c = in[i];
-        if (c == '+') {
-            c = ' ';
+        if (in[i]== '+') {
+            in[i] = ' ';
         }
     }
     // now decode as usual

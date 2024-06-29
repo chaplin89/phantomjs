@@ -3,13 +3,14 @@ project(phantomjs)
 
 set (CMAKE_CXX_STANDARD 11)
 
-find_package(Qt5 COMPONENTS Core Network WebKitWidgets REQUIRED)
+set(Qt6WebKitWidgets_DIR /usr/local/lib/x86_64-linux-gnu/cmake/Qt6WebKitWidgets)
+find_package(Qt6 COMPONENTS Core Network WebKitWidgets REQUIRED)
 find_package(Threads REQUIRED)
 
-message("Using Qt version ${Qt5Core_VERSION}")
-if (Qt5Core_VERSION VERSION_LESS 5.5.0)
-  message(FATAL_ERROR "This version of Qt is not supported. Please use Qt 5.5 or later")
-endif()
+# message("Using Qt version ${Qt5Core_VERSION}")
+# if (Qt5Core_VERSION VERSION_LESS 5.5.0)
+#   message(FATAL_ERROR "This version of Qt is not supported. Please use Qt 5.5 or later")
+# endif()
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
@@ -33,7 +34,7 @@ else()
 endif()
 
 add_executable(${PROJECT_NAME} src/phantomjs.qrc ${PHANTOMJS_SOURCES} ${THIRDPARTY_SOURCES})
-target_link_libraries(${PROJECT_NAME} ${EXTRA_LIBS} Qt5::Core Qt5::Network Qt5::WebKitWidgets Threads::Threads)
+target_link_libraries(${PROJECT_NAME} ${EXTRA_LIBS} Qt6::Core Qt6::Network Qt6::WebKitWidgets Threads::Threads)
 install(TARGETS ${PROJECT_NAME} DESTINATION bin)
 
 add_custom_target(check COMMAND python test/run-tests.py -v)

@@ -31,7 +31,10 @@
 #ifndef ENCODING_H
 #define ENCODING_H
 
-#include <QTextCodec>
+#include <QStringConverter>
+#include <QStringEncoder>
+#include <QStringDecoder>
+#include <QString>
 
 class Encoding {
 public:
@@ -45,12 +48,12 @@ public:
     QString getName() const;
     void setEncoding(const QString& encoding);
 
-    QTextCodec* getCodec() const;
+    QStringConverter::Encoding getCodec() const;
 
     static const Encoding UTF8;
 
 private:
-    QTextCodec* m_codec;
+    QStringConverter::Encoding m_codec;
     static const QByteArray DEFAULT_CODEC_NAME;
 };
 

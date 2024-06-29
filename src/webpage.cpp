@@ -56,6 +56,7 @@
 #include <QWebHistoryItem>
 #include <QWebInspector>
 #include <QWebPage>
+#include <QStandardPaths>
 #include <math.h>
 
 #include "callback.h"
@@ -413,7 +414,7 @@ WebPage::WebPage(QObject* parent, const QUrl& baseUrl)
 
     if (isLocalStorageEnabled) {
         if (phantomCfg->localStoragePath().isEmpty()) {
-            pageSettings->setLocalStoragePath(QStandardPaths::writableLocation(QStandardPaths::DataLocation));
+            pageSettings->setLocalStoragePath(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation));
         } else {
             pageSettings->setLocalStoragePath(phantomCfg->localStoragePath());
         }

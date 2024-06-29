@@ -32,6 +32,7 @@
 #include "config.h"
 #include "phantom.h"
 
+#include <QMetaType>
 #include <QDataStream>
 #include <QDateTime>
 #include <QSettings>
@@ -477,7 +478,7 @@ void CookieJar::load()
 {
     if (isEnabled()) {
         // Register a "StreamOperator" for this Meta Type, so we can easily serialize/deserialize the cookies
-        qRegisterMetaTypeStreamOperators<QList<QNetworkCookie>>("QList<QNetworkCookie>");
+        qRegisterMetaType<QList<QNetworkCookie>>("QList<QNetworkCookie>");
 
         // Load all the cookies
         if (m_cookieStorage) {
