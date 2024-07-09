@@ -42,10 +42,8 @@ File::File(QFile* openfile, QStringConverter::Encoding codec, QObject* parent)
     , m_file(openfile)
     , m_fileStream(0)
 {
-    if (codec) {
-        m_fileStream = new QTextStream(m_file);
-        m_fileStream->setEncoding(codec);
-    }
+    m_fileStream = new QTextStream(m_file);
+    m_fileStream->setEncoding(codec);
 }
 
 File::~File()
@@ -236,7 +234,7 @@ bool File::setEncoding(const QString& encoding)
     // Since there can be multiple names for the same codec (i.e., "utf8" and
     // "utf-8"), we need to get the codec in the system first and use its
     // canonical name
-    QStringConverter::Encoding codec = QStringConverter::encodingForName(encoding.toLatin1()).value_or(QStringConverter::Encoding::Utf8);
+    QStringConverter::Encoding codec = QStringConverter::encodingForName(encoding.toLatin1()).value();
 
     // Check whether encoding actually needs to be changed
     const QString encodingBeforeUpdate(QStringConverter::nameForEncoding(m_fileStream->encoding()));
