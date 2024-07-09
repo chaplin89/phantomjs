@@ -89,7 +89,7 @@ NoFileAccessReply::NoFileAccessReply(QObject* parent, const QNetworkRequest& req
                        .arg(req.url().scheme()));
     setError(ProtocolUnknownError, msg);
 
-    QMetaObject::invokeMethod(this, "error", Qt::QueuedConnection,
+    QMetaObject::invokeMethod(this, "errorOccurred", Qt::QueuedConnection,
         Q_ARG(QNetworkReply::NetworkError, ProtocolUnknownError));
     QMetaObject::invokeMethod(this, "finished", Qt::QueuedConnection);
 }
@@ -390,7 +390,7 @@ QNetworkReply* NetworkAccessManager::createRequest(Operation op, const QNetworkR
 
     connect(reply, SIGNAL(readyRead()), this, SLOT(handleStarted()));
     connect(reply, SIGNAL(sslErrors(const QList<QSslError>&)), this, SLOT(handleSslErrors(const QList<QSslError>&)));
-    connect(reply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(handleNetworkError()));
+    connect(reply, SIGNAL(errorOccurred(QNetworkReply::NetworkError)), this, SLOT(handleNetworkError(QNetworkReply::NetworkError)));
 
     // synchronous requests will be finished at this point
     if (reply->isFinished()) {
@@ -506,7 +506,7 @@ void NetworkAccessManager::handleSslErrors(const QList<QSslError>& errors)
     }
 }
 
-void NetworkAccessManager::handleNetworkError()
+void NetworkAccessManager::handleNetworkError(QNetworkReply::NetworkError error)
 {
     QNetworkReply* reply = qobject_cast<QNetworkReply*>(sender());
     qDebug() << "Network - Resource request error:"

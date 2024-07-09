@@ -113,7 +113,7 @@ private slots:
     void handleFinished(QNetworkReply* reply);
     void provideAuthentication(QNetworkReply* reply, QAuthenticator* authenticator);
     void handleSslErrors(const QList<QSslError>& errors);
-    void handleNetworkError();
+    void handleNetworkError(QNetworkReply::NetworkError error);
     void handleTimeout();
 
 private:
