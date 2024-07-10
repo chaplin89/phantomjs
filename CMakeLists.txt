@@ -3,7 +3,7 @@ project(phantomjs)
 
 set (CMAKE_CXX_STANDARD 11)
 
-find_package(Qt5 COMPONENTS Core Network WebKitWidgets REQUIRED)
+find_package(Qt5 COMPONENTS Core Network WebEngineWidgets REQUIRED)
 find_package(Threads REQUIRED)
 
 message("Using Qt version ${Qt5Core_VERSION}")
@@ -28,12 +28,13 @@ include_directories(src/qcommandline)
 if (WIN32)
   set(EXTRA_LIBS ws2_32)
   add_definitions(-DQCOMMANDLINE_STATIC)
-else()
+  else()
   set(EXTRA_LIBS dl)
-endif()
-
+  endif()
+  
+add_definitions(-DQT_MESSAGELOGCONTEXT)
 add_executable(${PROJECT_NAME} src/phantomjs.qrc ${PHANTOMJS_SOURCES} ${THIRDPARTY_SOURCES})
-target_link_libraries(${PROJECT_NAME} ${EXTRA_LIBS} Qt5::Core Qt5::Network Qt5::WebKitWidgets Threads::Threads)
+target_link_libraries(${PROJECT_NAME} ${EXTRA_LIBS} Qt5::Core Qt5::Network Qt5::WebEngineWidgets Threads::Threads)
 install(TARGETS ${PROJECT_NAME} DESTINATION bin)
 
 add_custom_target(check COMMAND python test/run-tests.py -v)

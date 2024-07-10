@@ -50,13 +50,14 @@
 #include <QScreen>
 #include <QUrl>
 #include <QUuid>
-#include <QWebElement>
-#include <QWebFrame>
-#include <QWebHistory>
-#include <QWebHistoryItem>
-#include <QWebInspector>
-#include <QWebPage>
+// #include <QWebEngineElement>
+#include <QWebEnginePage>
+#include <QWebEngineHistory>
+#include <QWebEngineHistoryItem>
+// #include <QWebEngineInspector>
+#include <QWebEnginePage>
 #include <math.h>
+#include <future>
 
 #include "callback.h"
 #include "config.h"
@@ -85,29 +86,35 @@
 /**
   * @class CustomPage
   */
-class CustomPage : public QWebPage {
+class CustomPage : public QWebEnginePage {
     Q_OBJECT
 
 public:
     CustomPage(WebPage* parent = Q_NULLPTR)
-        : QWebPage(parent)
+        : QWebEnginePage(parent)
         , m_webPage(parent)
     {
-        m_userAgent = QWebPage::userAgentForUrl(QUrl());
-        setForwardUnsupportedContent(true);
+    auto page = QWebEnginePage()
+    page->runJavaScript("navigator.userAgent", [](const QVariant result) {
+        int i =0;
+        return;
+    });
+
+        m_userAgent = "Hey"; //QWebEnginePage::userAgentForUrl(QUrl());
+        //setForwardUnsupportedContent(true);
     }
 
-    bool extension(Extension extension, const ExtensionOption* option, ExtensionReturn* output)
-    {
-        Q_UNUSED(option);
+    // bool extension(Extension extension, const ExtensionOption* option, ExtensionReturn* output)
+    // {
+    //     Q_UNUSED(option);
 
-        if (extension == ChooseMultipleFilesExtension) {
-            static_cast<ChooseMultipleFilesExtensionReturn*>(output)->fileNames = m_uploadFiles;
-            return true;
-        } else {
-            return false;
-        }
-    }
+    //     if (extension == ChooseMultipleFilesExtension) {
+    //         static_cast<ChooseMultipleFilesExtensionReturn*>(output)->fileNames = m_uploadFiles;
+    //         return true;
+    //     } else {
+    //         return false;
+    //     }
+    // }
 
     void setCookieJar(CookieJar* cookieJar)
     {
@@ -129,12 +136,12 @@ public slots:
     }
 
 protected:
-    bool supportsExtension(Extension extension) const
-    {
-        return extension == ChooseMultipleFilesExtension;
-    }
+    // bool supportsExtension(Extension extension) const
+    // {
+    //     return extension == ChooseMultipleFilesExtension;
+    // }
 
-    QString chooseFile(QWebFrame* originatingFrame, const QString& oldFile)
+    QString chooseFile(QWebEnginePage* originatingFrame, const QString& oldFile)
     {
         Q_UNUSED(originatingFrame);
 
@@ -150,19 +157,19 @@ protected:
         return chosenFile;
     }
 
-    void javaScriptAlert(QWebFrame* originatingFrame, const QString& msg)
+    void javaScriptAlert(QWebEnginePage* originatingFrame, const QString& msg)
     {
         Q_UNUSED(originatingFrame);
         emit m_webPage->javaScriptAlertSent(msg);
     }
 
-    bool javaScriptConfirm(QWebFrame* originatingFrame, const QString& msg)
+    bool javaScriptConfirm(QWebEnginePage* originatingFrame, const QString& msg)
     {
         Q_UNUSED(originatingFrame);
         return m_webPage->javaScriptConfirm(msg);
     }
 
-    bool javaScriptPrompt(QWebFrame* originatingFrame, const QString& msg, const QString& defaultValue, QString* result)
+    bool javaScriptPrompt(QWebEnginePage* originatingFrame, const QString& msg, const QString& defaultValue, QString* result)
     {
         Q_UNUSED(originatingFrame);
         return m_webPage->javaScriptPrompt(msg, defaultValue, result);
@@ -186,7 +193,7 @@ protected:
         return m_userAgent;
     }
 
-    bool acceptNavigationRequest(QWebFrame* frame, const QNetworkRequest& request, QWebPage::NavigationType type)
+    bool acceptNavigationRequest(QWebEnginePage* frame, const QNetworkRequest& request, QWebEnginePage::NavigationType type)
     {
         bool isMainFrame = (frame == m_webPage->m_mainFrame);
 
@@ -198,15 +205,15 @@ protected:
         case NavigationTypeFormSubmitted:
             navigationType = "FormSubmitted";
             break;
-        case NavigationTypeBackOrForward:
-            navigationType = "BackOrForward";
-            break;
+        // case NavigationTypeBackOrForward:
+        //     navigationType = "BackOrForward";
+        //     break;
         case NavigationTypeReload:
             navigationType = "Reload";
             break;
-        case NavigationTypeFormResubmitted:
-            navigationType = "FormResubmitted";
-            break;
+        // case NavigationTypeFormResubmitted:
+        //     navigationType = "FormResubmitted";
+        //     break;
         case NavigationTypeOther:
             navigationType = "Other";
             break;
@@ -222,7 +229,7 @@ protected:
         return !isNavigationLocked;
     }
 
-    QWebPage* createWindow(WebWindowType type)
+    QWebEnginePage* createWindow(WebWindowType type)
     {
         Q_UNUSED(type);
         WebPage* newPage;
@@ -242,7 +249,7 @@ protected:
         // Signal JS shim to catch, decorate and store this new child page
         emit m_webPage->rawPageCreated(newPage);
 
-        // Return the new QWebPage to the QWebKit backend
+        // Return the new QWebEnginePage to the QWebKit backend
         return newPage->m_customWebPage;
     }
 
@@ -357,14 +364,15 @@ WebPage::WebPage(QObject* parent, const QUrl& baseUrl)
     m_customWebPage = new CustomPage(this);
     Config* phantomCfg = Phantom::instance()->config();
 
+
     // To grant universal access to a web page
     // attribute "WebSecurityEnabled" must be applied during the initializing
     // security context for Document instance. Setting up it later will not cause any effect
     // see <qt\src\3rdparty\webkit\Source\WebCore\dom\Document.cpp:4468>
-    QWebSettings* settings = m_customWebPage->settings();
-    settings->setAttribute(QWebSettings::WebSecurityEnabled, phantomCfg->webSecurityEnabled());
+    // QWebEngineSettings* settings = m_customWebPage->settings();
+    // settings->setAttribute(QWebEngineSettings::WebSecurityEnabled, phantomCfg->webSecurityEnabled());
 
-    m_mainFrame = m_customWebPage->mainFrame();
+    m_mainFrame = m_customWebPage;
     m_currentFrame = m_mainFrame;
     m_mainFrame->setHtml(BLANK_HTML, baseUrl);
 
@@ -379,9 +387,9 @@ WebPage::WebPage(QObject* parent, const QUrl& baseUrl)
     // So, we call the slot twice to setup the main frame
     // (no parameter == main frame) but we make sure to do the setup only once.
     //
-    // @see WebPage::setupFrame(QWebFrame *) for details.
+    // @see WebPage::setupFrame(QWebEnginePage *) for details.
     connect(m_mainFrame, SIGNAL(loadFinished(bool)), this, SLOT(setupFrame()), Qt::QueuedConnection);
-    connect(m_customWebPage, SIGNAL(frameCreated(QWebFrame*)), this, SLOT(setupFrame(QWebFrame*)), Qt::DirectConnection);
+    connect(m_customWebPage, SIGNAL(frameCreated(QWebEnginePage*)), this, SLOT(setupFrame(QWebEnginePage*)), Qt::DirectConnection);
     connect(m_mainFrame, SIGNAL(javaScriptWindowObjectCleared()), this, SLOT(setupFrame()));
     connect(m_mainFrame, SIGNAL(javaScriptWindowObjectCleared()), SIGNAL(initialized()));
     connect(m_mainFrame, SIGNAL(urlChanged(QUrl)), this, SLOT(handleUrlChanged(QUrl)));
@@ -392,36 +400,37 @@ WebPage::WebPage(QObject* parent, const QUrl& baseUrl)
     connect(m_customWebPage, SIGNAL(repaintRequested(QRect)), this, SLOT(handleRepaintRequested(QRect)), Qt::QueuedConnection);
 
     // Start with transparent background.
-    QPalette palette = m_customWebPage->palette();
-    palette.setBrush(QPalette::Base, Qt::transparent);
-    m_customWebPage->setPalette(palette);
+    // QPalette palette = m_customWebPage->palette();
+    // palette.setBrush(QPalette::Base, Qt::transparent);
+    // m_customWebPage->setPalette(palette);
 
     // Set the page Library path
     setLibraryPath(QFileInfo(phantomCfg->scriptFile()).dir().absolutePath());
 
     // Page size does not need to take scrollbars into account.
-    m_mainFrame->setScrollBarPolicy(Qt::Horizontal, Qt::ScrollBarAlwaysOff);
-    m_mainFrame->setScrollBarPolicy(Qt::Vertical, Qt::ScrollBarAlwaysOff);
+    // m_mainFrame->setScrollBarPolicy(Qt::Horizontal, Qt::ScrollBarAlwaysOff);
+    // m_mainFrame->setScrollBarPolicy(Qt::Vertical, Qt::ScrollBarAlwaysOff);
 
-    QWebSettings* pageSettings = m_customWebPage->settings();
-    pageSettings->setAttribute(QWebSettings::OfflineStorageDatabaseEnabled, true);
-    pageSettings->setAttribute(QWebSettings::OfflineWebApplicationCacheEnabled, true);
-    pageSettings->setAttribute(QWebSettings::FrameFlatteningEnabled, true);
+    // QWebEngineSettings* pageSettings = m_customWebPage->settings();
+    // pageSettings->setAttribute(QWebEngineSettings::OfflineStorageDatabaseEnabled, true);
+    // pageSettings->setAttribute(QWebEngineSettings::OfflineWebApplicationCacheEnabled, true);
+    // pageSettings->setAttribute(QWebEngineSettings::FrameFlatteningEnabled, true);
 
-    bool isLocalStorageEnabled = phantomCfg->localStorageDefaultQuota() >= 0;
-    pageSettings->setAttribute(QWebSettings::LocalStorageEnabled, isLocalStorageEnabled);
+    // bool isLocalStorageEnabled = phantomCfg->localStorageDefaultQuota() >= 0;
+    // pageSettings->setAttribute(QWebEngineSettings::LocalStorageEnabled, isLocalStorageEnabled);
 
+    bool isLocalStorageEnabled = true;
     if (isLocalStorageEnabled) {
         if (phantomCfg->localStoragePath().isEmpty()) {
-            pageSettings->setLocalStoragePath(QStandardPaths::writableLocation(QStandardPaths::DataLocation));
+            // pageSettings->setLocalStoragePath(QStandardPaths::writableLocation(QStandardPaths::DataLocation));
         } else {
-            pageSettings->setLocalStoragePath(phantomCfg->localStoragePath());
+            // pageSettings->setLocalStoragePath(phantomCfg->localStoragePath());
         }
     }
 
     // Custom network access manager to allow traffic monitoring.
     m_networkAccessManager = new NetworkAccessManager(this, phantomCfg);
-    m_customWebPage->setNetworkAccessManager(m_networkAccessManager);
+    // m_customWebPage->setNetworkAccessManager(m_networkAccessManager);
     connect(m_networkAccessManager, SIGNAL(resourceRequested(QVariant, QObject*)),
         SIGNAL(resourceRequested(QVariant, QObject*)));
     connect(m_networkAccessManager, SIGNAL(resourceReceived(QVariant)),
@@ -432,7 +441,7 @@ WebPage::WebPage(QObject* parent, const QUrl& baseUrl)
         SIGNAL(resourceTimeout(QVariant)));
 
     m_dpi = qRound(QApplication::primaryScreen()->logicalDotsPerInch());
-    m_customWebPage->setViewportSize(QSize(400, 300));
+    // m_customWebPage->setViewportSize(QSize(400, 300));
 }
 
 WebPage::~WebPage()
@@ -440,19 +449,21 @@ WebPage::~WebPage()
     emit closing(this);
 }
 
-QWebFrame* WebPage::mainFrame()
+QWebEnginePage* WebPage::mainFrame()
 {
     return m_mainFrame;
 }
 
 QString WebPage::content() const
 {
-    return m_mainFrame->toHtml();
+    // return m_mainFrame->toHtml();
+    return QString();
 }
 
 QString WebPage::frameContent() const
 {
-    return m_currentFrame->toHtml();
+    return QString();
+    // return m_currentFrame->toHtml();
 }
 
 void WebPage::setContent(const QString& content)
@@ -500,11 +511,11 @@ QString WebPage::url() const
 
 QString WebPage::frameUrl() const
 {
-    // Issue #11035: QWebFrame::url() is only set by QWebFrame::setUrl();
+    // Issue #11035: QWebEnginePage::url() is only set by QWebEnginePage::setUrl();
     // it doesn't reflect a URL specified in a <frame> tag.
-    // QWebFrame::baseUrl() will be other than expected in the presence of
+    // QWebEnginePage::baseUrl() will be other than expected in the presence of
     // <base href>, but it's less wrong.
-    return m_currentFrame->baseUrl().toEncoded();
+    return m_currentFrame->url().toEncoded();
 }
 
 bool WebPage::loading() const
@@ -552,7 +563,7 @@ bool WebPage::go(int historyItemRelativeIndex)
     int historyItemIndex = m_customWebPage->history()->currentItemIndex() + historyItemRelativeIndex;
 
     // Fetch the right item from the history
-    QWebHistoryItem historyItem = m_customWebPage->history()->itemAt(historyItemIndex);
+    QWebEngineHistoryItem historyItem = m_customWebPage->history()->itemAt(historyItemIndex);
 
     // Go to the history item, if it's valid
     if (historyItem.isValid()) {
@@ -565,22 +576,24 @@ bool WebPage::go(int historyItemRelativeIndex)
 
 void WebPage::reload()
 {
-    m_customWebPage->triggerAction(QWebPage::Reload);
+    m_customWebPage->triggerAction(QWebEnginePage::Reload);
 }
 
 void WebPage::stop()
 {
-    m_customWebPage->triggerAction(QWebPage::Stop);
+    m_customWebPage->triggerAction(QWebEnginePage::Stop);
 }
 
 QString WebPage::plainText() const
 {
-    return m_mainFrame->toPlainText();
+    // return m_mainFrame->toPlainText();
+    return QString();
 }
 
 QString WebPage::framePlainText() const
 {
-    return m_currentFrame->toPlainText();
+    // m_currentFrame->toPlainText();
+    return QString();
 }
 
 QString WebPage::libraryPath() const
@@ -595,40 +608,42 @@ void WebPage::setLibraryPath(const QString& libraryPath)
 
 QString WebPage::offlineStoragePath() const
 {
-    return m_customWebPage->settings()->offlineStoragePath();
+    return QString();
+    // return m_customWebPage->settings()->offlineStoragePath();
 }
 
 int WebPage::offlineStorageQuota() const
 {
-    return m_customWebPage->settings()->offlineStorageDefaultQuota();
+    // return m_customWebPage->settings()->offlineStorageDefaultQuota();
+    return 0;
 }
 
 int WebPage::showInspector(const int port)
 {
-    m_customWebPage->settings()->setAttribute(QWebSettings::DeveloperExtrasEnabled, true);
-    m_inspector = new QWebInspector;
-    m_inspector->setPage(m_customWebPage);
+    // m_customWebPage->settings()->setAttribute(QWebEngineSettings::DeveloperExtrasEnabled, true);
+    // m_inspector = new QWebInspector;
+    // m_inspector->setPage(m_customWebPage);
 
-    if (port == -1) {
-        m_inspector->setVisible(true);
-    } else {
-        m_customWebPage->setProperty("_q_webInspectorServerPort", port);
-        return m_customWebPage->property("_q_webInspectorServerPort").toInt();
-    }
-    return port;
+    // if (port == -1) {
+    //     m_inspector->setVisible(true);
+    // } else {
+    //     m_customWebPage->setProperty("_q_webInspectorServerPort", port);
+    //     return m_customWebPage->property("_q_webInspectorServerPort").toInt();
+    // }
+    return 8080; //port;
 }
 
 void WebPage::applySettings(const QVariantMap& def)
 {
-    QWebSettings* opt = m_customWebPage->settings();
+    // QWebEngineSettings* opt = m_customWebPage->settings();
 
-    opt->setAttribute(QWebSettings::AutoLoadImages, def[PAGE_SETTINGS_LOAD_IMAGES].toBool());
-    opt->setAttribute(QWebSettings::JavascriptEnabled, def[PAGE_SETTINGS_JS_ENABLED].toBool());
-    opt->setAttribute(QWebSettings::XSSAuditingEnabled, def[PAGE_SETTINGS_XSS_AUDITING].toBool());
-    opt->setAttribute(QWebSettings::LocalContentCanAccessRemoteUrls, def[PAGE_SETTINGS_LOCAL_ACCESS_REMOTE].toBool());
-    opt->setAttribute(QWebSettings::WebSecurityEnabled, def[PAGE_SETTINGS_WEB_SECURITY_ENABLED].toBool());
-    opt->setAttribute(QWebSettings::JavascriptCanOpenWindows, def[PAGE_SETTINGS_JS_CAN_OPEN_WINDOWS].toBool());
-    opt->setAttribute(QWebSettings::JavascriptCanCloseWindows, def[PAGE_SETTINGS_JS_CAN_CLOSE_WINDOWS].toBool());
+    // opt->setAttribute(QWebEngineSettings::AutoLoadImages, def[PAGE_SETTINGS_LOAD_IMAGES].toBool());
+    // opt->setAttribute(QWebEngineSettings::JavascriptEnabled, def[PAGE_SETTINGS_JS_ENABLED].toBool());
+    // opt->setAttribute(QWebEngineSettings::XSSAuditingEnabled, def[PAGE_SETTINGS_XSS_AUDITING].toBool());
+    // opt->setAttribute(QWebEngineSettings::LocalContentCanAccessRemoteUrls, def[PAGE_SETTINGS_LOCAL_ACCESS_REMOTE].toBool());
+    // opt->setAttribute(QWebEngineSettings::WebSecurityEnabled, def[PAGE_SETTINGS_WEB_SECURITY_ENABLED].toBool());
+    // opt->setAttribute(QWebEngineSettings::JavascriptCanOpenWindows, def[PAGE_SETTINGS_JS_CAN_OPEN_WINDOWS].toBool());
+    // opt->setAttribute(QWebEngineSettings::JavascriptCanCloseWindows, def[PAGE_SETTINGS_JS_CAN_CLOSE_WINDOWS].toBool());
 
     if (def.contains(PAGE_SETTINGS_USER_AGENT)) {
         m_customWebPage->m_userAgent = def[PAGE_SETTINGS_USER_AGENT].toString();
@@ -691,16 +706,16 @@ void WebPage::setViewportSize(const QVariantMap& size)
     int w = size.value("width").toInt();
     int h = size.value("height").toInt();
     if (w > 0 && h > 0) {
-        m_customWebPage->setViewportSize(QSize(w, h));
+        // m_customWebPage->setViewportSize(QSize(w, h));
     }
 }
 
 QVariantMap WebPage::viewportSize() const
 {
     QVariantMap result;
-    QSize size = m_customWebPage->viewportSize();
-    result["width"] = size.width();
-    result["height"] = size.height();
+    // QSize size = m_customWebPage->viewportSize();
+    // result["width"] = size.width();
+    // result["height"] = size.height();
     return result;
 }
 
@@ -731,7 +746,7 @@ void WebPage::setScrollPosition(const QVariantMap& size)
     int top = size.value("top").toInt();
     int left = size.value("left").toInt();
     m_scrollPosition = QPoint(left, top);
-    m_mainFrame->setScrollPosition(m_scrollPosition);
+    // m_mainFrame->setScrollPosition(m_scrollPosition);
 }
 
 QVariantMap WebPage::scrollPosition() const
@@ -759,12 +774,19 @@ QVariant WebPage::evaluateJavaScript(const QString& code)
 
     qDebug() << "WebPage - evaluateJavaScript" << function;
 
-    evalResult = m_currentFrame->evaluateJavaScript(
-        function);
+    std::promise<const QVariant> promise_result;
+    std::future<const QVariant> future_result = promise_result.get_future();
 
+    m_currentFrame->runJavaScript(
+        function, [this, &promise_result](const QVariant result){
+            promise_result.set_value(result);
+        });
+
+    future_result.wait();
+    auto result = future_result.get();
     qDebug() << "WebPage - evaluateJavaScript result" << evalResult;
 
-    return evalResult;
+    return result;
 }
 
 QString WebPage::filePicker(const QString& oldFile)
@@ -894,7 +916,7 @@ void WebPage::openUrl(const QString& address, const QVariant& op, const QVariant
     QNetworkRequest request;
 
     applySettings(settings);
-    m_customWebPage->triggerAction(QWebPage::Stop);
+    m_customWebPage->triggerAction(QWebEnginePage::Stop);
 
     if (op.type() == QVariant::String) {
         operation = op.toString();
@@ -934,7 +956,7 @@ void WebPage::openUrl(const QString& address, const QVariant& op, const QVariant
     }
 
     if (networkOp == QNetworkAccessManager::UnknownOperation) {
-        m_mainFrame->evaluateJavaScript("console.error('Unknown network operation: " + operation + "');");
+        m_mainFrame->runJavaScript("console.error('Unknown network operation: " + operation + "');");
         return;
     }
 
@@ -950,7 +972,7 @@ void WebPage::openUrl(const QString& address, const QVariant& op, const QVariant
         }
 
         request.setUrl(url);
-        m_mainFrame->load(request, networkOp, body);
+        m_mainFrame->load(url);
 
         // Emulate the behavior of old QtWebKit
         m_loadingProgress = 1;
@@ -969,191 +991,194 @@ void WebPage::close()
 
 bool WebPage::render(const QString& fileName, const QVariantMap& option)
 {
-    if (m_mainFrame->contentsSize().isEmpty()) {
-        return false;
-    }
+    return false;
+//     if (m_mainFrame->contentsSize().isEmpty()) {
+//         return false;
+//     }
 
-    QString outFileName = fileName;
-    QString tempFileName = "";
+//     QString outFileName = fileName;
+//     QString tempFileName = "";
 
-    QString format = "";
-    int quality = -1; // QImage#save default
+//     QString format = "";
+//     int quality = -1; // QImage#save default
 
-    if (fileName == STDOUT_FILENAME || fileName == STDERR_FILENAME) {
-        if (!QFile::exists(fileName)) {
-            // create temporary file for OS that have no /dev/stdout or /dev/stderr. (ex. windows)
-            tempFileName = QDir::tempPath() + "/phantomjstemp" + QUuid::createUuid().toString();
-            outFileName = tempFileName;
-        }
+//     if (fileName == STDOUT_FILENAME || fileName == STDERR_FILENAME) {
+//         if (!QFile::exists(fileName)) {
+//             // create temporary file for OS that have no /dev/stdout or /dev/stderr. (ex. windows)
+//             tempFileName = QDir::tempPath() + "/phantomjstemp" + QUuid::createUuid().toString();
+//             outFileName = tempFileName;
+//         }
 
-        format = "png"; // default format for stdout and stderr
-    } else {
-        QFileInfo fileInfo(outFileName);
-        QDir dir;
-        dir.mkpath(fileInfo.absolutePath());
-    }
+//         format = "png"; // default format for stdout and stderr
+//     } else {
+//         QFileInfo fileInfo(outFileName);
+//         QDir dir;
+//         dir.mkpath(fileInfo.absolutePath());
+//     }
 
-    if (option.contains("format")) {
-        format = option.value("format").toString();
-    } else if (fileName.endsWith(".pdf", Qt::CaseInsensitive)) {
-        format = "pdf";
-    }
+//     if (option.contains("format")) {
+//         format = option.value("format").toString();
+//     } else if (fileName.endsWith(".pdf", Qt::CaseInsensitive)) {
+//         format = "pdf";
+//     }
 
-    if (option.contains("quality")) {
-        quality = option.value("quality").toInt();
-    }
+//     if (option.contains("quality")) {
+//         quality = option.value("quality").toInt();
+//     }
 
-    bool retval = true;
-    if (format == "pdf") {
-        QPdfWriter pdfWriter(fileName);
-        retval = renderPdf(pdfWriter);
-    } else {
-        RenderMode mode;
-        if (option.contains("onlyViewport") && option.value("onlyViewport").toBool()) {
-            mode = Viewport;
-        } else {
-            mode = Content;
-        }
-        QImage rawPageRendering = renderImage(mode);
+//     bool retval = true;
+//     if (format == "pdf") {
+//         QPdfWriter pdfWriter(fileName);
+//         retval = renderPdf(pdfWriter);
+//     } else {
+//         RenderMode mode;
+//         if (option.contains("onlyViewport") && option.value("onlyViewport").toBool()) {
+//             mode = Viewport;
+//         } else {
+//             mode = Content;
+//         }
+//         QImage rawPageRendering = renderImage(mode);
 
-        const char* f = 0; // 0 is QImage#save default
-        if (format != "") {
-            f = format.toLocal8Bit().constData();
-        }
+//         const char* f = 0; // 0 is QImage#save default
+//         if (format != "") {
+//             f = format.toLocal8Bit().constData();
+//         }
 
-        retval = rawPageRendering.save(outFileName, f, quality);
-    }
+//         retval = rawPageRendering.save(outFileName, f, quality);
+//     }
 
-    if (tempFileName != "") {
-        // cleanup temporary file and render to stdout or stderr
-        QFile i(tempFileName);
-        i.open(QIODevice::ReadOnly);
+//     if (tempFileName != "") {
+//         // cleanup temporary file and render to stdout or stderr
+//         QFile i(tempFileName);
+//         i.open(QIODevice::ReadOnly);
 
-        QByteArray ba = i.readAll();
+//         QByteArray ba = i.readAll();
 
-        System* system = (System*)Phantom::instance()->createSystem();
-        if (fileName == STDOUT_FILENAME) {
-#ifdef Q_OS_WIN
-            _setmode(_fileno(stdout), O_BINARY);
-#endif
+//         System* system = (System*)Phantom::instance()->createSystem();
+//         if (fileName == STDOUT_FILENAME) {
+// #ifdef Q_OS_WIN
+//             _setmode(_fileno(stdout), O_BINARY);
+// #endif
 
-            ((File*)system->_stdout())->write(QString::fromLatin1(ba.constData(), ba.size()));
+//             ((File*)system->_stdout())->write(QString::fromLatin1(ba.constData(), ba.size()));
 
-#ifdef Q_OS_WIN
-            _setmode(_fileno(stdout), O_TEXT);
-#endif
-        } else if (fileName == STDERR_FILENAME) {
-#ifdef Q_OS_WIN
-            _setmode(_fileno(stderr), O_BINARY);
-#endif
+// #ifdef Q_OS_WIN
+//             _setmode(_fileno(stdout), O_TEXT);
+// #endif
+//         } else if (fileName == STDERR_FILENAME) {
+// #ifdef Q_OS_WIN
+//             _setmode(_fileno(stderr), O_BINARY);
+// #endif
 
-            ((File*)system->_stderr())->write(QString::fromLatin1(ba.constData(), ba.size()));
+//             ((File*)system->_stderr())->write(QString::fromLatin1(ba.constData(), ba.size()));
 
-#ifdef Q_OS_WIN
-            _setmode(_fileno(stderr), O_TEXT);
-#endif
-        }
+// #ifdef Q_OS_WIN
+//             _setmode(_fileno(stderr), O_TEXT);
+// #endif
+//         }
 
-        i.close();
+//         i.close();
 
-        QFile::remove(tempFileName);
-    }
+//         QFile::remove(tempFileName);
+//     }
 
-    return retval;
+//     return retval;
 }
 
 QString WebPage::renderBase64(const QByteArray& format)
 {
-    QByteArray nformat = format.toLower();
+    return "";
+    // QByteArray nformat = format.toLower();
 
-    if (nformat != "pdf" && !QImageWriter::supportedImageFormats().contains(nformat)) {
-        // Return an empty string in case an unsupported format was provided
-        return "";
-    }
+    // if (nformat != "pdf" && !QImageWriter::supportedImageFormats().contains(nformat)) {
+    //     // Return an empty string in case an unsupported format was provided
+    //     return "";
+    // }
 
-    // Prepare buffer for writing
-    QByteArray bytes;
-    QBuffer buffer(&bytes);
-    buffer.open(QIODevice::WriteOnly);
+    // // Prepare buffer for writing
+    // QByteArray bytes;
+    // QBuffer buffer(&bytes);
+    // buffer.open(QIODevice::WriteOnly);
 
-    if (nformat == "pdf") {
-        QPdfWriter pdfWriter(&buffer);
+    // if (nformat == "pdf") {
+    //     QPdfWriter pdfWriter(&buffer);
 
-        if (!renderPdf(pdfWriter)) {
-            // Return an empty string if pdf render fails
-            return "";
-        }
-    } else {
-        QImage rawPageRendering = renderImage();
+    //     if (!renderPdf(pdfWriter)) {
+    //         // Return an empty string if pdf render fails
+    //         return "";
+    //     }
+    // } else {
+    //     QImage rawPageRendering = renderImage();
 
-        // Writing image to the buffer, using PNG encoding
-        rawPageRendering.save(&buffer, nformat);
-    }
+    //     // Writing image to the buffer, using PNG encoding
+    //     rawPageRendering.save(&buffer, nformat);
+    // }
 
-    return bytes.toBase64();
+    // return bytes.toBase64();
 }
 
 QImage WebPage::renderImage(const RenderMode mode)
 {
-    QRect frameRect;
-    QSize viewportSize = m_customWebPage->viewportSize();
-    if (mode == Viewport) {
-        frameRect = QRect(QPoint(0, 0), viewportSize);
-    } else {
-        QSize contentsSize = m_mainFrame->contentsSize();
-        contentsSize -= QSize(m_scrollPosition.x(), m_scrollPosition.y());
-        frameRect = QRect(QPoint(0, 0), contentsSize);
-        m_customWebPage->setViewportSize(contentsSize);
-    }
+    return QImage();
+//     QRect frameRect;
+//     QSize viewportSize = m_customWebPage->viewportSize();
+//     if (mode == Viewport) {
+//         frameRect = QRect(QPoint(0, 0), viewportSize);
+//     } else {
+//         QSize contentsSize = m_mainFrame->contentsSize();
+//         contentsSize -= QSize(m_scrollPosition.x(), m_scrollPosition.y());
+//         frameRect = QRect(QPoint(0, 0), contentsSize);
+//         m_customWebPage->setViewportSize(contentsSize);
+//     }
 
-    if (!m_clipRect.isNull()) {
-        frameRect = m_clipRect;
-    }
+//     if (!m_clipRect.isNull()) {
+//         frameRect = m_clipRect;
+//     }
 
-#ifdef Q_OS_WIN
-    QImage::Format format = QImage::Format_ARGB32_Premultiplied;
-#else
-    QImage::Format format = QImage::Format_ARGB32;
-#endif
+// #ifdef Q_OS_WIN
+//     QImage::Format format = QImage::Format_ARGB32_Premultiplied;
+// #else
+//     QImage::Format format = QImage::Format_ARGB32;
+// #endif
 
-    QImage buffer(frameRect.size(), format);
-    buffer.fill(Qt::transparent);
+//     QImage buffer(frameRect.size(), format);
+//     buffer.fill(Qt::transparent);
 
-    QPainter painter;
+//     QPainter painter;
 
-    // We use tiling approach to work-around Qt software rasterizer bug
-    // when dealing with very large paint device.
-    // See http://code.google.com/p/phantomjs/issues/detail?id=54.
-    const int tileSize = 4096;
-    int htiles = (buffer.width() + tileSize - 1) / tileSize;
-    int vtiles = (buffer.height() + tileSize - 1) / tileSize;
-    for (int x = 0; x < htiles; ++x) {
-        for (int y = 0; y < vtiles; ++y) {
+//     // We use tiling approach to work-around Qt software rasterizer bug
+//     // when dealing with very large paint device.
+//     // See http://code.google.com/p/phantomjs/issues/detail?id=54.
+//     const int tileSize = 4096;
+//     int htiles = (buffer.width() + tileSize - 1) / tileSize;
+//     int vtiles = (buffer.height() + tileSize - 1) / tileSize;
+//     for (int x = 0; x < htiles; ++x) {
+//         for (int y = 0; y < vtiles; ++y) {
 
-            QImage tileBuffer(tileSize, tileSize, format);
-            tileBuffer.fill(Qt::transparent);
+//             QImage tileBuffer(tileSize, tileSize, format);
+//             tileBuffer.fill(Qt::transparent);
 
-            // Render the web page onto the small tile first
-            painter.begin(&tileBuffer);
-            painter.setRenderHint(QPainter::Antialiasing, true);
-            painter.setRenderHint(QPainter::TextAntialiasing, true);
-            painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
-            painter.translate(-frameRect.left(), -frameRect.top());
-            painter.translate(-x * tileSize, -y * tileSize);
-            m_mainFrame->render(&painter, QRegion(frameRect));
-            painter.end();
+//             // Render the web page onto the small tile first
+//             painter.begin(&tileBuffer);
+//             painter.setRenderHint(QPainter::Antialiasing, true);
+//             painter.setRenderHint(QPainter::TextAntialiasing, true);
+//             painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
+//             painter.translate(-frameRect.left(), -frameRect.top());
+//             painter.translate(-x * tileSize, -y * tileSize);
+//             m_mainFrame->render(&painter, QRegion(frameRect));
+//             painter.end();
 
-            // Copy the tile to the main buffer
-            painter.begin(&buffer);
-            painter.setCompositionMode(QPainter::CompositionMode_Source);
-            painter.drawImage(x * tileSize, y * tileSize, tileBuffer);
-            painter.end();
-        }
-    }
-    if (mode != Viewport) {
-        m_customWebPage->setViewportSize(viewportSize);
-    }
-    return buffer;
+//             // Copy the tile to the main buffer
+//             painter.begin(&buffer);
+//             painter.setCompositionMode(QPainter::CompositionMode_Source);
+//             painter.drawImage(x * tileSize, y * tileSize, tileBuffer);
+//             painter.end();
+//         }
+//     }
+//     if (mode != Viewport) {
+//         m_customWebPage->setViewportSize(viewportSize);
+//     }
+//     return buffer;
 }
 
 qreal WebPage::stringToPointSize(const QString& string) const
@@ -1190,106 +1215,107 @@ qreal WebPage::printMargin(const QVariantMap& map, const QString& key)
 
 bool WebPage::renderPdf(QPdfWriter& pdfWriter)
 {
-    pdfWriter.setResolution(m_dpi);
-    QVariantMap paperSize = m_paperSize;
+    return false;
+    // pdfWriter.setResolution(m_dpi);
+    // QVariantMap paperSize = m_paperSize;
 
-    if (paperSize.isEmpty()) {
-        const QSize pageSize = m_mainFrame->contentsSize();
-        paperSize.insert("width", QString::number(pageSize.width()) + "px");
-        paperSize.insert("height", QString::number(pageSize.height()) + "px");
-        paperSize.insert("margin", "0px");
-    }
+    // if (paperSize.isEmpty()) {
+    //     const QSize pageSize = m_mainFrame->contentsSize();
+    //     paperSize.insert("width", QString::number(pageSize.width()) + "px");
+    //     paperSize.insert("height", QString::number(pageSize.height()) + "px");
+    //     paperSize.insert("margin", "0px");
+    // }
 
-    if (paperSize.contains("width") && paperSize.contains("height")) {
-        const QSizeF sizePt(ceil(stringToPointSize(paperSize.value("width").toString())),
-            ceil(stringToPointSize(paperSize.value("height").toString())));
-        pdfWriter.setPageSize(QPageSize(sizePt, QPageSize::Point));
-    } else if (paperSize.contains("format")) {
-        const QPageLayout::Orientation orientation = paperSize.contains("orientation")
-                && paperSize.value("orientation").toString().compare("landscape", Qt::CaseInsensitive) == 0
-            ? QPageLayout::Portrait
-            : QPageLayout::Landscape;
-        pdfWriter.setPageOrientation(orientation);
-        static const struct {
-            QString format;
-            QPageSize::PageSizeId paperSize;
-        } formats[] = {
-            { "A0", QPageSize::A0 },
-            { "A1", QPageSize::A1 },
-            { "A2", QPageSize::A2 },
-            { "A3", QPageSize::A3 },
-            { "A4", QPageSize::A4 },
-            { "A5", QPageSize::A5 },
-            { "A6", QPageSize::A6 },
-            { "A7", QPageSize::A7 },
-            { "A8", QPageSize::A8 },
-            { "A9", QPageSize::A9 },
-            { "B0", QPageSize::B0 },
-            { "B1", QPageSize::B1 },
-            { "B2", QPageSize::B2 },
-            { "B3", QPageSize::B3 },
-            { "B4", QPageSize::B4 },
-            { "B5", QPageSize::B5 },
-            { "B6", QPageSize::B6 },
-            { "B7", QPageSize::B7 },
-            { "B8", QPageSize::B8 },
-            { "B9", QPageSize::B9 },
-            { "B10", QPageSize::B10 },
-            { "C5E", QPageSize::C5E },
-            { "Comm10E", QPageSize::Comm10E },
-            { "DLE", QPageSize::DLE },
-            { "Executive", QPageSize::Executive },
-            { "Folio", QPageSize::Folio },
-            { "Ledger", QPageSize::Ledger },
-            { "Legal", QPageSize::Legal },
-            { "Letter", QPageSize::Letter },
-            { "Tabloid", QPageSize::Tabloid }
-        };
-        pdfWriter.setPageSize(QPageSize(QPageSize::A4)); // Fallback
-        for (uint i = 0; i < sizeof(formats) / sizeof(formats[0]); ++i) {
-            if (paperSize.value("format").toString().compare(formats[i].format, Qt::CaseInsensitive) == 0) {
-                pdfWriter.setPageSize(QPageSize(formats[i].paperSize));
-                break;
-            }
-        }
-    } else {
-        return false;
-    }
+    // if (paperSize.contains("width") && paperSize.contains("height")) {
+    //     const QSizeF sizePt(ceil(stringToPointSize(paperSize.value("width").toString())),
+    //         ceil(stringToPointSize(paperSize.value("height").toString())));
+    //     pdfWriter.setPageSize(QPageSize(sizePt, QPageSize::Point));
+    // } else if (paperSize.contains("format")) {
+    //     const QPageLayout::Orientation orientation = paperSize.contains("orientation")
+    //             && paperSize.value("orientation").toString().compare("landscape", Qt::CaseInsensitive) == 0
+    //         ? QPageLayout::Portrait
+    //         : QPageLayout::Landscape;
+    //     pdfWriter.setPageOrientation(orientation);
+    //     static const struct {
+    //         QString format;
+    //         QPageSize::PageSizeId paperSize;
+    //     } formats[] = {
+    //         { "A0", QPageSize::A0 },
+    //         { "A1", QPageSize::A1 },
+    //         { "A2", QPageSize::A2 },
+    //         { "A3", QPageSize::A3 },
+    //         { "A4", QPageSize::A4 },
+    //         { "A5", QPageSize::A5 },
+    //         { "A6", QPageSize::A6 },
+    //         { "A7", QPageSize::A7 },
+    //         { "A8", QPageSize::A8 },
+    //         { "A9", QPageSize::A9 },
+    //         { "B0", QPageSize::B0 },
+    //         { "B1", QPageSize::B1 },
+    //         { "B2", QPageSize::B2 },
+    //         { "B3", QPageSize::B3 },
+    //         { "B4", QPageSize::B4 },
+    //         { "B5", QPageSize::B5 },
+    //         { "B6", QPageSize::B6 },
+    //         { "B7", QPageSize::B7 },
+    //         { "B8", QPageSize::B8 },
+    //         { "B9", QPageSize::B9 },
+    //         { "B10", QPageSize::B10 },
+    //         { "C5E", QPageSize::C5E },
+    //         { "Comm10E", QPageSize::Comm10E },
+    //         { "DLE", QPageSize::DLE },
+    //         { "Executive", QPageSize::Executive },
+    //         { "Folio", QPageSize::Folio },
+    //         { "Ledger", QPageSize::Ledger },
+    //         { "Legal", QPageSize::Legal },
+    //         { "Letter", QPageSize::Letter },
+    //         { "Tabloid", QPageSize::Tabloid }
+    //     };
+    //     pdfWriter.setPageSize(QPageSize(QPageSize::A4)); // Fallback
+    //     for (uint i = 0; i < sizeof(formats) / sizeof(formats[0]); ++i) {
+    //         if (paperSize.value("format").toString().compare(formats[i].format, Qt::CaseInsensitive) == 0) {
+    //             pdfWriter.setPageSize(QPageSize(formats[i].paperSize));
+    //             break;
+    //         }
+    //     }
+    // } else {
+    //     return false;
+    // }
 
-    if (paperSize.contains("border") && !paperSize.contains("margin")) {
-        // backwards compatibility
-        paperSize["margin"] = paperSize["border"];
-    }
+    // if (paperSize.contains("border") && !paperSize.contains("margin")) {
+    //     // backwards compatibility
+    //     paperSize["margin"] = paperSize["border"];
+    // }
 
-    qreal marginLeft = 0;
-    qreal marginTop = 0;
-    qreal marginRight = 0;
-    qreal marginBottom = 0;
+    // qreal marginLeft = 0;
+    // qreal marginTop = 0;
+    // qreal marginRight = 0;
+    // qreal marginBottom = 0;
 
-    if (paperSize.contains("margin")) {
-        const QVariant margins = paperSize["margin"];
-        if (margins.canConvert(QVariant::Map)) {
-            const QVariantMap map = margins.toMap();
-            marginLeft = printMargin(map, "left");
-            marginTop = printMargin(map, "top");
-            marginRight = printMargin(map, "right");
-            marginBottom = printMargin(map, "bottom");
-        } else if (margins.canConvert(QVariant::String)) {
-            const qreal margin = stringToPointSize(margins.toString());
-            marginLeft = margin;
-            marginTop = margin;
-            marginRight = margin;
-            marginBottom = margin;
-        }
-    }
+    // if (paperSize.contains("margin")) {
+    //     const QVariant margins = paperSize["margin"];
+    //     if (margins.canConvert(QVariant::Map)) {
+    //         const QVariantMap map = margins.toMap();
+    //         marginLeft = printMargin(map, "left");
+    //         marginTop = printMargin(map, "top");
+    //         marginRight = printMargin(map, "right");
+    //         marginBottom = printMargin(map, "bottom");
+    //     } else if (margins.canConvert(QVariant::String)) {
+    //         const qreal margin = stringToPointSize(margins.toString());
+    //         marginLeft = margin;
+    //         marginTop = margin;
+    //         marginRight = margin;
+    //         marginBottom = margin;
+    //     }
+    // }
 
-    pdfWriter.setPageMargins(QMarginsF(marginLeft, marginTop, marginRight, marginBottom), QPageLayout::Point);
+    // pdfWriter.setPageMargins(QMarginsF(marginLeft, marginTop, marginRight, marginBottom), QPageLayout::Point);
 
-    QPainter painter(&pdfWriter);
-    m_mainFrame->render(&painter);
-    painter.end();
+    // QPainter painter(&pdfWriter);
+    // m_mainFrame->view()->render(&painter);
+    // painter.end();
 
-    return true;
+    // return true;
 }
 
 void WebPage::setZoomFactor(qreal zoom)
@@ -1302,9 +1328,9 @@ qreal WebPage::zoomFactor() const
     return m_mainFrame->zoomFactor();
 }
 
-QString WebPage::windowName() const
-{
-    return m_mainFrame->evaluateJavaScript("window.name;").toString();
+QString WebPage::windowName()
+{    
+    return this->evaluateJavaScript("window.name;").toString();
 }
 
 qreal WebPage::getHeight(const QVariantMap& map, const QString& key) const
@@ -1330,7 +1356,7 @@ qreal WebPage::headerHeight() const
     return getHeight(m_paperSize, "header");
 }
 
-QString getHeaderFooter(const QVariantMap& map, const QString& key, QWebFrame* frame, int page, int numPages)
+QString getHeaderFooter(const QVariantMap& map, const QString& key, QWebEnginePage* frame, int page, int numPages)
 {
     QVariant header = map.value(key);
     if (!header.canConvert(QVariant::Map)) {
@@ -1346,7 +1372,7 @@ QString getHeaderFooter(const QVariantMap& map, const QString& key, QWebFrame* f
             }
         }
     }
-    frame->evaluateJavaScript("console.error('Bad header callback given, use phantom.callback);");
+    frame->runJavaScript("console.error('Bad header callback given, use phantom.callback);");
     return QString();
 }
 
@@ -1362,20 +1388,20 @@ QString WebPage::footer(int page, int numPages)
 
 void WebPage::_uploadFile(const QString& selector, const QStringList& fileNames)
 {
-    QWebElement el = m_currentFrame->findFirstElement(selector);
-    if (el.isNull()) {
-        return;
-    }
+    // QWebElement el = m_currentFrame->findFirstElement(selector);
+    // if (el.isNull()) {
+    //     return;
+    // }
 
-    // Filter out "fileNames" that don't actually exist
-    m_customWebPage->m_uploadFiles.clear();
-    for (int i = 0, ilen = fileNames.length(); i < ilen; ++i) {
-        if (QFile::exists(fileNames[i])) {
-            m_customWebPage->m_uploadFiles.append(fileNames[i]);
-        }
-    }
+    // // Filter out "fileNames" that don't actually exist
+    // m_customWebPage->m_uploadFiles.clear();
+    // for (int i = 0, ilen = fileNames.length(); i < ilen; ++i) {
+    //     if (QFile::exists(fileNames[i])) {
+    //         m_customWebPage->m_uploadFiles.append(fileNames[i]);
+    //     }
+    // }
 
-    el.evaluateJavaScript(JS_ELEMENT_CLICK);
+    // el.evaluateJavaScript(JS_ELEMENT_CLICK);
 }
 
 bool WebPage::injectJs(const QString& jsFilePath)
@@ -1385,7 +1411,7 @@ bool WebPage::injectJs(const QString& jsFilePath)
 
 void WebPage::_appendScriptElement(const QString& scriptUrl)
 {
-    m_currentFrame->evaluateJavaScript(QString(JS_APPEND_SCRIPT_ELEMENT).arg(scriptUrl));
+    m_currentFrame->runJavaScript(QString(JS_APPEND_SCRIPT_ELEMENT).arg(scriptUrl));
 }
 
 QObject* WebPage::_getGenericCallback()
@@ -1549,10 +1575,10 @@ void WebPage::sendEvent(const QString& type, const QVariant& arg1, const QVarian
         QContextMenuEvent* event = new QContextMenuEvent(reason, m_mousePos, QCursor::pos(), keyboardModifiers);
 
         // Post and process events
-        // Send the context menu event directly to QWebPage::swallowContextMenuEvent which forwards it to JS
-        // If we fire the event using postEvent to m_customWebPage, it will end up in QWebPagePrivate::contextMenuEvent,
+        // Send the context menu event directly to QWebEnginePage::swallowContextMenuEvent which forwards it to JS
+        // If we fire the event using postEvent to m_customWebPage, it will end up in QWebEnginePagePrivate::contextMenuEvent,
         // which will not forward it to JS at all
-        m_customWebPage->swallowContextMenuEvent(event);
+        // m_customWebPage->swallowContextMenuEvent(event);
         return;
     }
 
@@ -1588,21 +1614,22 @@ QStringList WebPage::pagesWindowName() const
 {
     QStringList pagesWindowName;
 
-    foreach (const WebPage* p, this->findChildren<WebPage*>()) {
-        pagesWindowName << p->windowName();
-    }
+    // foreach (const WebPage* p, this->findChildren<WebPage*>()) {
+    //     pagesWindowName << p->windowName();
+    // }
+    pagesWindowName << this->title();
 
     return pagesWindowName;
 }
 
 QObject* WebPage::getPage(const QString& windowName) const
 {
-    QList<WebPage*> childPages = this->findChildren<WebPage*>();
-    for (int i = childPages.length() - 1; i >= 0; --i) {
-        if (childPages.at(i)->windowName() == windowName) {
-            return childPages.at(i);
-        }
-    }
+    // QList<WebPage*> childPages = this->findChildren<WebPage*>();
+    // for (int i = childPages.length() - 1; i >= 0; --i) {
+    //     if (childPages.at(i)->windowName() == windowName) {
+    //         return childPages.at(i);
+    //     }
+    // }
     return Q_NULLPTR;
 }
 
@@ -1618,7 +1645,8 @@ void WebPage::setOwnsPages(const bool owns)
 
 int WebPage::framesCount() const
 {
-    return m_currentFrame->childFrames().count();
+    return 1;
+    // return m_currentFrame->childFrames().count();
 }
 
 int WebPage::childFramesCount() const //< deprecated
@@ -1630,9 +1658,10 @@ QStringList WebPage::framesName() const
 {
     QStringList framesName;
 
-    foreach (const QWebFrame* f, m_currentFrame->childFrames()) {
-        framesName << f->frameName();
-    }
+    // foreach (const QWebEnginePage* f, m_currentFrame->childFrames()) {
+    //     framesName << f->title();
+    // }
+    framesName << this->title();
     return framesName;
 }
 
@@ -1649,22 +1678,22 @@ QStringList WebPage::childFramesName() const //< deprecated
 // to register m_currentFrame for this treatment, because if any of
 // its parent frames are destroyed it will be destroyed too.
 
-void WebPage::changeCurrentFrame(QWebFrame* const frame)
+void WebPage::changeCurrentFrame(QWebEnginePage* const frame)
 {
     if (frame != m_currentFrame) {
         qDebug() << "WebPage - changeCurrentFrame"
-                 << "from" << m_currentFrame->frameName()
-                 << "to" << frame->frameName();
+                 << "from" << m_currentFrame->title()
+                 << "to" << frame->title();
 
         if (m_currentFrame != m_mainFrame) {
-            disconnect(m_currentFrame, &QWebFrame::destroyed,
+            disconnect(m_currentFrame, &QWebEnginePage::destroyed,
                 this, &WebPage::handleCurrentFrameDestroyed);
         }
 
         m_currentFrame = frame;
 
         if (m_currentFrame != m_mainFrame) {
-            connect(m_currentFrame, &QWebFrame::destroyed,
+            connect(m_currentFrame, &QWebEnginePage::destroyed,
                 this, &WebPage::handleCurrentFrameDestroyed,
                 Qt::DirectConnection);
         }
@@ -1679,30 +1708,30 @@ void WebPage::handleCurrentFrameDestroyed()
     m_currentFrame = m_mainFrame;
 }
 
-bool WebPage::switchToFrame(const QString& frameName)
+bool WebPage::switchToFrame(const QString& title)
 {
-    QList<QWebFrame*> childFrames = m_currentFrame->childFrames();
-    for (int i = childFrames.length() - 1; i >= 0; --i) {
-        if (childFrames.at(i)->frameName() == frameName) {
-            this->changeCurrentFrame(childFrames.at(i));
-            return true;
-        }
-    }
+    // QList<QWebEnginePage*> childFrames = m_currentFrame->childFrames();
+    // for (int i = childFrames.length() - 1; i >= 0; --i) {
+    //     if (childFrames.at(i)->title() == title) {
+    //         this->changeCurrentFrame(childFrames.at(i));
+    //         return true;
+    //     }
+    // }
     return false;
 }
 
-bool WebPage::switchToChildFrame(const QString& frameName) //< deprecated
+bool WebPage::switchToChildFrame(const QString& title) //< deprecated
 {
-    return this->switchToFrame(frameName);
+    return this->switchToFrame(title);
 }
 
 bool WebPage::switchToFrame(const int framePosition)
 {
-    QList<QWebFrame*> childFrames = m_currentFrame->childFrames();
-    if (framePosition >= 0 && framePosition < childFrames.size()) {
-        this->changeCurrentFrame(childFrames.at(framePosition));
-        return true;
-    }
+    // QList<QWebEnginePage*> childFrames = m_currentFrame->childFrames();
+    // if (framePosition >= 0 && framePosition < childFrames.size()) {
+    //     this->changeCurrentFrame(childFrames.at(framePosition));
+    //     return true;
+    // }
     return false;
 }
 
@@ -1713,53 +1742,54 @@ bool WebPage::switchToChildFrame(const int framePosition) //< deprecated
 
 void WebPage::switchToMainFrame()
 {
-    if (m_currentFrame != m_mainFrame) {
-        this->changeCurrentFrame(m_mainFrame);
-    }
+    // if (m_currentFrame != m_mainFrame) {
+    //     this->changeCurrentFrame(m_mainFrame);
+    // }
 }
 
 bool WebPage::switchToParentFrame()
 {
-    if (m_currentFrame->parentFrame()) {
-        this->changeCurrentFrame(m_currentFrame->parentFrame());
-        return true;
-    }
     return false;
+    // if (m_currentFrame->parentFrame()) {
+    //     this->changeCurrentFrame(m_currentFrame->parentFrame());
+    //     return true;
+    // }
+    // return false;
 }
 
 void WebPage::switchToFocusedFrame()
 {
-    this->changeCurrentFrame(m_customWebPage->currentFrame());
+    // this->changeCurrentFrame(m_customWebPage->currentFrame());
 }
 
-QString WebPage::frameName() const
-{
-    return m_currentFrame->frameName();
-}
+// QString WebPage::title() const
+// {
+//     return m_currentFrame->title();
+// }
 
 QString WebPage::currentFrameName() const //< deprecated
 {
-    return this->frameName();
+    return this->title();
 }
 
 QString WebPage::focusedFrameName() const
 {
-    return m_customWebPage->currentFrame()->frameName();
+    return m_customWebPage->title();
 }
 
-static void injectCallbacksObjIntoFrame(QWebFrame* frame, WebpageCallbacks* callbacksObject)
+static void injectCallbacksObjIntoFrame(QWebEnginePage* frame, WebpageCallbacks* callbacksObject)
 {
     // Inject object only if it's not already present
-    if (frame->evaluateJavaScript(CALLBACKS_OBJECT_PRESENT).toBool() == false) {
-        // Decorate the window object in this frame (object ownership left to the creator/parent)
-        frame->addToJavaScriptWindowObject(CALLBACKS_OBJECT_NAME, callbacksObject, QWebFrame::QtOwnership);
-        frame->evaluateJavaScript(CALLBACKS_OBJECT_INJECTION);
-    }
+    // if (frame->runJavaScript(CALLBACKS_OBJECT_PRESENT).toBool() == false) {
+    //     // Decorate the window object in this frame (object ownership left to the creator/parent)
+    //     frame->runJavaScript(CALLBACKS_OBJECT_INJECTION);
+    //     frame->addToJavaScriptWindowObject(CALLBACKS_OBJECT_NAME, callbacksObject, QWebEnginePage::QtOwnership);
+    // }
 }
 
-void WebPage::setupFrame(QWebFrame* frame)
+void WebPage::setupFrame(QWebEnginePage* frame)
 {
-    qDebug() << "WebPage - setupFrame" << (frame == Q_NULLPTR ? "" : frame->frameName());
+    qDebug() << "WebPage - setupFrame" << (frame == Q_NULLPTR ? "" : frame->title());
 
     // Inject the Callbacks object in the main frame
     injectCallbacksObjIntoFrame(frame == Q_NULLPTR ? m_mainFrame : frame, m_callbacks);
@@ -1788,7 +1818,7 @@ void WebPage::stopJavaScript()
 
 void WebPage::clearMemoryCache()
 {
-    QWebSettings::clearMemoryCaches();
+    // QWebEngineSettings::clearMemoryCaches();
 }
 
 #include "webpage.moc"

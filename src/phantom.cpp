@@ -39,8 +39,8 @@
 #include <QMetaProperty>
 #include <QScreen>
 #include <QStandardPaths>
-#include <QtWebKitVersion>
-#include <QtWebKitWidgets/QWebPage>
+#include <QWebEnginePage>
+#include <QWebChannel>
 
 #include "callback.h"
 #include "childprocess.h"
@@ -53,9 +53,9 @@
 #include "webpage.h"
 #include "webserver.h"
 
-#if QTWEBKIT_VERSION < ((5 << 16) | (212 << 8))
-#error "This version of QtWebKit is not supported. Please use QtWebKit >= 5.212"
-#endif
+// #if QTWEBKIT_VERSION < ((5 << 16) | (212 << 8))
+// #error "This version of QtWebKit is not supported. Please use QtWebKit >= 5.212"
+// #endif
 
 static Phantom* phantomInstance = Q_NULLPTR;
 
@@ -109,17 +109,18 @@ void Phantom::init()
     // set the default DPI
     m_defaultDpi = qRound(QApplication::primaryScreen()->logicalDotsPerInch());
 
-    QWebSettings::setOfflineWebApplicationCachePath(QStandardPaths::writableLocation(QStandardPaths::DataLocation));
-    if (m_config.offlineStoragePath().isEmpty()) {
-        QWebSettings::setOfflineStoragePath(QStandardPaths::writableLocation(QStandardPaths::DataLocation));
-    } else {
-        QWebSettings::setOfflineStoragePath(m_config.offlineStoragePath());
-    }
-    if (m_config.offlineStorageDefaultQuota() > 0) {
-        QWebSettings::setOfflineStorageDefaultQuota(m_config.offlineStorageDefaultQuota());
-    }
+    // QWebEngineSettings::setOfflineWebApplicationCachePath(QStandardPaths::writableLocation(QStandardPaths::DataLocation));
+    // if (m_config.offlineStoragePath().isEmpty()) {
+    //     QWebEngineSettings::setOfflineStoragePath(QStandardPaths::writableLocation(QStandardPaths::DataLocation));
+    // } else {
+    //     QWebEngineSettings::setOfflineStoragePath(m_config.offlineStoragePath());
+    // }
+    // if (m_config.offlineStorageDefaultQuota() > 0) {
+    //     QWebEngineSettings::setOfflineStorageDefaultQuota(m_config.offlineStorageDefaultQuota());
+    // }
 
     m_page = new WebPage(this, QUrl::fromLocalFile(m_config.scriptFile()));
+
     m_page->setCookieJar(m_defaultCookieJar);
     m_pages.append(m_page);
 
@@ -364,7 +365,7 @@ void Phantom::loadModule(const QString& moduleSource, const QString& filename)
     }
 
     QString scriptSource = "(function(require, exports, module) {\n" + moduleSource + "\n}.call({}," + "require.cache['" + filename + "']._getRequire()," + "require.cache['" + filename + "'].exports," + "require.cache['" + filename + "']" + "));";
-    m_page->mainFrame()->evaluateJavaScript(scriptSource);
+    m_page->mainFrame()->runJavaScript(scriptSource);
 }
 
 bool Phantom::injectJs(const QString& jsFilePath)
@@ -451,10 +452,15 @@ void Phantom::printConsoleMessage(const QString& message)
 void Phantom::onInitialized()
 {
     // Add 'phantom' object to the global scope
-    m_page->mainFrame()->addToJavaScriptWindowObject("phantom", this);
+    // m_page->addToJavaScriptWindowObject("phantom", this);
+
+    QWebChannel* pWebChannel = new QWebChannel(this);
+    pWebChannel->registerObject("phantom", this);
+
+    m_page->mainFrame()->setWebChannel(pWebChannel);
 
     // Bootstrap the PhantomJS scope
-    m_page->mainFrame()->evaluateJavaScript(
+    m_page->mainFrame()->runJavaScript(
         Utils::readResourceFileUtf8(":/bootstrap.js"));
 }
 

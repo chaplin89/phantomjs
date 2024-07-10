@@ -387,7 +387,7 @@ function decorateNewPage(opts, page) {
             }
         }
         str = str.replace(/,$/, '') + '); }';
-        return this.evaluateJavaScript(str);
+        return this.runJavaScript(str);
     };
 
     /**

@@ -30,7 +30,7 @@
 #ifndef REPL_H
 #define REPL_H
 
-#include <QtWebKitWidgets/QWebFrame>
+#include <QWebEnginePage>
 
 #include "phantom.h"
 
@@ -43,7 +43,7 @@ extern "C" {
  * REPL. Read–Eval–Print Loop.
  *
  * This class realises the REPL functionality within PhantomJS.
- * It's a Singleton: invoke "REPL::getInstance(QWebFrame *, Phantom *) to
+ * It's a Singleton: invoke "REPL::getInstance(QWebEnginePage *, Phantom *) to
  * create the first-and-only instance, or no parameter to get the singleton
  * if previously created.
  *
@@ -55,13 +55,13 @@ class REPL : public QObject {
 
 public:
     static bool instanceExists();
-    static REPL* getInstance(QWebFrame* webframe = NULL, Phantom* parent = NULL);
+    static REPL* getInstance(QWebEnginePage* webframe = NULL, Phantom* parent = NULL);
 
     Q_INVOKABLE QString _getClassName(QObject* obj) const;
     Q_INVOKABLE QStringList _enumerateCompletions(QObject* obj) const;
 
 private:
-    REPL(QWebFrame* webframe, Phantom* parent);
+    REPL(QWebEnginePage* webframe, Phantom* parent);
     static void offerCompletion(const char* buf, linenoiseCompletions* lc);
 
 private slots:
@@ -69,7 +69,7 @@ private slots:
     void stopLoop(const int code);
 
 private:
-    QWebFrame* m_webframe;
+    QWebEnginePage* m_webframe;
     Phantom* m_parentPhantom;
     bool m_looping;
     QByteArray m_historyFilepath;

@@ -36,7 +36,7 @@
 #include <QDebug>
 #include <QDir>
 #include <QFile>
-#include <QtWebKitWidgets/QWebFrame>
+#include <QWebEnginePage>
 
 static QString findScript(const QString& jsFilePath, const QString& libraryPath)
 {
@@ -106,7 +106,7 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
     }
 }
 
-bool injectJsInFrame(const QString& jsFilePath, const Encoding& jsFileEnc, const QString& libraryPath, QWebFrame* targetFrame, const bool startingScript)
+bool injectJsInFrame(const QString& jsFilePath, const Encoding& jsFileEnc, const QString& libraryPath, QWebEnginePage* targetFrame, const bool startingScript)
 {
     // Don't do anything if an empty string is passed
     QString scriptPath = findScript(jsFilePath, libraryPath);
@@ -120,20 +120,20 @@ bool injectJsInFrame(const QString& jsFilePath, const Encoding& jsFileEnc, const
         return false;
     }
     // Execute JS code in the context of the document
-    targetFrame->evaluateJavaScript(scriptBody);
+    targetFrame->runJavaScript(scriptBody);
     return true;
 }
 
-bool loadJSForDebug(const QString& jsFilePath, const Encoding& jsFileEnc, const QString& libraryPath, QWebFrame* targetFrame, const bool autorun)
+bool loadJSForDebug(const QString& jsFilePath, const Encoding& jsFileEnc, const QString& libraryPath, QWebEnginePage* targetFrame, const bool autorun)
 {
     QString scriptPath = findScript(jsFilePath, libraryPath);
     QString scriptBody = jsFromScriptFile(scriptPath, jsFileEnc);
 
     scriptBody = QString("function __run() {\n%1\n}").arg(scriptBody);
-    targetFrame->evaluateJavaScript(scriptBody);
+    targetFrame->runJavaScript(scriptBody);
 
     if (autorun) {
-        targetFrame->evaluateJavaScript("__run()");
+        targetFrame->runJavaScript("__run()");
     }
 
     return true;

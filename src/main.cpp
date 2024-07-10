@@ -36,7 +36,8 @@
 #include <QIcon>
 #include <QSslConfiguration>
 #include <QSslSocket>
-#include <QWebSettings>
+#include <QWebEngineSettings>
+#include <QWebEnginePage>
 
 #include <exception>
 #include <stdio.h>
@@ -69,6 +70,7 @@ static int inner_main(int argc, char** argv)
     // Get the Phantom singleton
     Phantom* phantom = Phantom::instance();
 
+
     // Start script execution
     if (phantom->execute()) {
         app.exec();
@@ -82,7 +84,7 @@ static int inner_main(int argc, char** argv)
 #ifndef QT_NO_DEBUG
     // Clear all cached data before exiting, so it is not detected as
     // leaked.
-    QWebSettings::clearMemoryCaches();
+    // QWebEngineSettings::clearMemoryCaches();
 #endif
 
     return retVal;

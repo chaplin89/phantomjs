@@ -1,0 +1,12 @@
+{
+    "files.associations": {
+        "QWebEnginePage": "cpp",
+        "fstream": "cpp",
+        "sstream": "cpp",
+        "qapplication": "cpp",
+        "qwebframe": "cpp",
+        "qfileinfo": "cpp",
+        "qwebenginehistoryitem": "cpp",
+        "atomic": "cpp"
+    }
+}

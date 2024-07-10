@@ -35,8 +35,8 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QNetworkProxy>
-#include <QtWebKitWidgets/QWebFrame>
-#include <QtWebKitWidgets/QWebPage>
+#include <QWebEnginePage>
+#include <QWebChannel>
 
 #include "consts.h"
 #include "qcommandline.h"
@@ -142,12 +142,17 @@ void Config::loadJsonFile(const QString& filePath)
     // Load configurator
     QString configurator = Utils::readResourceFileUtf8(":/configurator.js");
 
-    // Use a temporary QWebPage to load the JSON configuration in this Object using the 'configurator' above
-    QWebPage webPage;
+    // Use a temporary QWebEnginePage to load the JSON configuration in this Object using the 'configurator' above
+    QWebEnginePage webPage;
     // Add this object to the global scope
-    webPage.mainFrame()->addToJavaScriptWindowObject("config", this);
+    QWebChannel* pWebChannel = new QWebChannel(this);
+    pWebChannel->registerObject("config", this);
+
+    webPage.setWebChannel(pWebChannel);
+
+
     // Apply the JSON config settings to this very object
-    webPage.mainFrame()->evaluateJavaScript(configurator.arg(jsonConfig));
+    webPage.runJavaScript(configurator.arg(jsonConfig));
 }
 
 QString Config::helpText() const

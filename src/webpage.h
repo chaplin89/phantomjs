@@ -34,8 +34,7 @@
 #include <QMap>
 #include <QPdfWriter>
 #include <QVariantMap>
-#include <QtWebKitWidgets/QWebFrame>
-#include <QtWebKitWidgets/QWebPage>
+#include <QWebEnginePage>
 
 #include "cookiejar.h"
 
@@ -76,7 +75,6 @@ class WebPage : public QObject {
     Q_PROPERTY(QStringList pagesWindowName READ pagesWindowName)
     Q_PROPERTY(bool ownsPages READ ownsPages WRITE setOwnsPages)
     Q_PROPERTY(QStringList framesName READ framesName)
-    Q_PROPERTY(QString frameName READ frameName)
     Q_PROPERTY(int framesCount READ framesCount)
     Q_PROPERTY(QString focusedFrameName READ focusedFrameName)
     Q_PROPERTY(QObject* cookieJar READ cookieJar WRITE setCookieJarFromQObject)
@@ -85,14 +83,14 @@ public:
     WebPage(QObject* parent, const QUrl& baseUrl = QUrl());
     virtual ~WebPage();
 
-    QWebFrame* mainFrame();
+    QWebEnginePage* mainFrame();
 
     QString content() const;
     QString frameContent() const;
     void setContent(const QString& content);
     void setFrameContent(const QString& content);
 
-    QString title() const;
+    // QString title() const;
     QString frameTitle() const;
 
     QString url() const;
@@ -149,7 +147,7 @@ public:
      * @return Returns the value of <code>'window.name'</code>
      *         within the current frame
      */
-    QString windowName() const;
+    QString windowName();
 
     /**
      * Returns a list of (Child) Pages that this page has currently open.
@@ -222,10 +220,10 @@ public:
     /**
      * Returns the name of the (Current) Frame
      *
-     * @brief frameName
+     * @brief title
      * @return Name of the Current Frame
      */
-    QString frameName() const;
+    QString title() const;
     /**
      * Returns the currently focused Frame's name.
      *
@@ -301,19 +299,19 @@ public slots:
      * Switches focus from the Current Frame to a Child Frame, identified by it's name.
      *
      * @brief switchToFrame
-     * @param frameName Name of the Child frame
+     * @param title Name of the Child frame
      * @return "true" if the frame was found, "false" otherwise
      */
-    bool switchToFrame(const QString& frameName);
+    bool switchToFrame(const QString& title);
     /**
      * Switches focus from the Current Frame to a Child Frame, identified by it's name.
      *
      * @deprecated
      * @brief switchToChildFrame
-     * @param frameName Name of the Child frame
+     * @param title Name of the Child frame
      * @return "true" if the frame was found, "false" otherwise
      */
-    bool switchToChildFrame(const QString& frameName);
+    bool switchToChildFrame(const QString& title);
     /**
      * Switches focus from the Current Frame to a Child Frame, identified by it positional order.
      *
@@ -345,7 +343,7 @@ public slots:
      */
     bool switchToParentFrame();
     /**
-     * Switches to the currently focused frame, as per QWebPage.  This is the frame whose
+     * Switches to the currently focused frame, as per QWebEnginePage.  This is the frame whose
      * window element was last focus()ed, and is currently the target of key events.
      *
      * @brief switchToFocusedFrame
@@ -507,7 +505,7 @@ signals:
 
 private slots:
     void finish(bool ok);
-    void setupFrame(QWebFrame* frame = Q_NULLPTR);
+    void setupFrame(QWebEnginePage* frame = Q_NULLPTR);
     void updateLoadingProgress(int progress);
     void handleRepaintRequested(const QRect& dirtyRect);
     void handleUrlChanged(const QUrl& url);
@@ -527,7 +525,7 @@ private:
      * @brief changeCurrentFrame
      * @param frame The Child frame
      */
-    void changeCurrentFrame(QWebFrame* const frame);
+    void changeCurrentFrame(QWebEnginePage* const frame);
 
     QString filePicker(const QString& oldFile);
     bool javaScriptConfirm(const QString& msg);
@@ -537,8 +535,8 @@ private:
 private:
     CustomPage* m_customWebPage;
     NetworkAccessManager* m_networkAccessManager;
-    QWebFrame* m_mainFrame;
-    QWebFrame* m_currentFrame;
+    QWebEnginePage* m_mainFrame;
+    QWebEnginePage* m_currentFrame;
     QRect m_clipRect;
     QPoint m_scrollPosition;
     QVariantMap m_paperSize; // For PDF output via render()

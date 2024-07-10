@@ -35,7 +35,9 @@
 #include <QRegExp>
 #include <QStandardPaths>
 #include <QTimer>
+#include <QWebChannel>
 
+#include <future>
 #include "consts.h"
 #include "terminal.h"
 #include "utils.h"
@@ -69,7 +71,7 @@ bool REPL::instanceExists()
     return REPL::getInstance() != Q_NULLPTR;
 }
 
-REPL* REPL::getInstance(QWebFrame* webframe, Phantom* parent)
+REPL* REPL::getInstance(QWebEnginePage* webframe, Phantom* parent)
 {
     static REPL* singleton = Q_NULLPTR;
     if (!singleton && webframe && parent) {
@@ -126,7 +128,7 @@ QStringList REPL::_enumerateCompletions(QObject* obj) const
 }
 
 // private:
-REPL::REPL(QWebFrame* webframe, Phantom* parent)
+REPL::REPL(QWebEnginePage* webframe, Phantom* parent)
     : QObject(parent)
     , m_looping(true)
 {
@@ -146,11 +148,16 @@ REPL::REPL(QWebFrame* webframe, Phantom* parent)
     // Set the static callback to offer Completions to the User
     linenoiseSetCompletionCallback(REPL::offerCompletion);
 
+
     // Inject REPL utility functions
-    m_webframe->evaluateJavaScript(Utils::readResourceFileUtf8(":/repl.js"));
+    m_webframe->runJavaScript(Utils::readResourceFileUtf8(":/repl.js"));
 
     // Add self to JavaScript world
-    m_webframe->addToJavaScriptWindowObject("_repl", this);
+    // m_webframe->addToJavaScriptWindowObject("_repl", this);
+    QWebChannel* pWebChannel = new QWebChannel(this);
+    pWebChannel->registerObject("_repl", this);
+
+    m_webframe->setWebChannel(pWebChannel);
 
     // Start the REPL's loop
     QTimer::singleShot(0, this, SLOT(startLoop()));
@@ -181,18 +188,18 @@ void REPL::offerCompletion(const char* buf, linenoiseCompletions* lc)
     }
 
     // This will return an array of String with the possible completions
-    QStringList completions = REPL::getInstance()->m_webframe->evaluateJavaScript(
-                                                                 QString(JS_RETURN_POSSIBLE_COMPLETIONS).arg(toInspect, toComplete))
-                                  .toStringList();
-
-    foreach (QString c, completions) {
-        if (lastIndexOfDot > -1) {
-            // Preserve the "toInspect" portion of the string to complete
-            linenoiseAddCompletion(lc, QString("%1.%2").arg(toInspect, c).toLocal8Bit().data());
-        } else {
-            linenoiseAddCompletion(lc, c.toLocal8Bit().data());
-        }
-    }
+    // REPL::getInstance()->m_webframe->runJavaScript(
+    //                                                              QString(JS_RETURN_POSSIBLE_COMPLETIONS).arg(toInspect, toComplete));
+                                //   .toStringList();
+    // QStringList completions = 
+    // foreach (QString c, completions) {
+    //     if (lastIndexOfDot > -1) {
+    //         // Preserve the "toInspect" portion of the string to complete
+    //         linenoiseAddCompletion(lc, QString("%1.%2").arg(toInspect, c).toLocal8Bit().data());
+    //     } else {
+    //         linenoiseAddCompletion(lc, c.toLocal8Bit().data());
+    //     }
+    // }
 }
 
 // private slots:
@@ -200,14 +207,23 @@ void REPL::startLoop()
 {
     char* userInput;
 
+    std::promise<QVariant> promise_result;
+    std::future<QVariant> future_result = promise_result.get_future();
+
     // Load REPL history
     linenoiseHistoryLoad(m_historyFilepath.data()); //< requires "char *"
     while (m_looping && (userInput = linenoise(PROMPT)) != Q_NULLPTR) {
         if (userInput[0] != '\0') {
             // Send the user input to the main Phantom frame for evaluation
-            m_webframe->evaluateJavaScript(
-                QString(JS_EVAL_USER_INPUT).arg(QString(userInput).replace('"', "\\\"")));
-
+            m_webframe->runJavaScript(
+                QString(JS_EVAL_USER_INPUT).arg(QString(userInput).replace('"', "\\\"")),
+                [this, &promise_result] (const QVariant result) {
+                    promise_result.set_value(result);
+                }
+                );
+            
+            future_result.wait();
+            
             // Save command in the REPL history
             linenoiseHistoryAdd(userInput);
             linenoiseHistorySave(m_historyFilepath.data()); //< requires "char *"
