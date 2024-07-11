@@ -19,7 +19,7 @@ function test_template(parent, action) {
     function callback1 (n) {
         assert_equals(n, 1);
         page.onCallback = s_callback2;
-        assert_equals(page.switchToFrame("target"), true);
+        assert_equals(page.switchToFrame("<!--frame1-->"), true);
         assert_equals(page.switchToFrame("actor"), true);
         page.evaluate(function () {
             document.getElementById("execute").click();
