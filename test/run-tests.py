@@ -770,6 +770,7 @@ class TestRunner(object):
         self.verbose         = options.verbose
         self.debugger        = options.debugger
         self.to_run          = options.to_run
+        self.server_mode     = options.servermode
         self.server_errs     = []
         self.prepare_environ()
 
@@ -1031,6 +1032,7 @@ def init():
                         choices=['always', 'never', 'auto'],
                         help="colorize the output; can be 'always',"
                         " 'never', or 'auto' (the default)")
+    parser.add_argument('--servermode' ,action='store_true', help="Enable server mode")
 
     options = parser.parse_args()
     activate_colorization(options)
@@ -1050,13 +1052,17 @@ def init():
 
     return runner
 
-def main():
+if __name__ == "__main__":
     runner = init()
     try:
         with HTTPTestServer(runner.base_path,
                             runner.signal_server_error,
                             runner.verbose):
-            sys.exit(runner.run_tests())
+            if not runner.server_mode:
+                sys.exit(runner.run_tests())
+            else:
+                while input() != "quit":
+                    pass
 
     except Exception:
         trace = traceback.format_exc(5).split("\n")
@@ -1069,5 +1075,3 @@ def main():
 
     except KeyboardInterrupt:
         sys.exit(2)
-
-main()
