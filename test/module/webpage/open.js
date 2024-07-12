@@ -25,7 +25,7 @@ async_test(function () {
         assert_equals(resource.status, 401);
     });
     page.onResourceError = this.step_func(function (err) {
-        assert_equals(err.errorString, "Operation canceled");
+        assert_equals(err.errorString, "Host requires authentication");
     });
 
     page.open(TEST_HTTP_BASE + 'status?status=401' +
