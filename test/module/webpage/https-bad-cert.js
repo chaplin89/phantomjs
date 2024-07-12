@@ -8,7 +8,7 @@ async_test(function () {
     var url = TEST_HTTPS_BASE;
     page.onResourceError = this.step_func(function (err) {
         assert_equals(err.url, url);
-        assert_equals(err.errorString, "SSL handshake failed");
+        assert_equals(err.errorString, "SSL handshake failed: The certificate is self-signed, and untrusted");
     });
     page.open(url, this.step_func_done(function (status) {
         assert_not_equals(status, "success");
