@@ -209,7 +209,7 @@ bool WebServer::handleRequest(mg_event event, mg_connection* conn, const mg_requ
         uri.append('?');
         uri.append(qs);
     }
-    requestObject["url"] = uri.data();
+    requestObject["url"] = uri;
 
 #if 0
     // Non-standard and thus disable for the time being.

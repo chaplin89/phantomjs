@@ -292,7 +292,7 @@ QVariant FileSystem::lastModified(const QString& path) const
     if (fi.exists()) {
         return QVariant(fi.lastModified());
     }
-    return QVariant(QDateTime());
+    return QVariant();
 }
 
 // Links
@@ -517,7 +517,7 @@ QObject* FileSystem::_open(const QString& path, const QVariantMap& opts) const
     if (!isBinary) {
         // default to UTF-8 encoded files
         const QString charset = opts.value("charset", "Utf8").toString();
-        codec = QStringConverter::encodingForName(charset.toLatin1()).value();
+        codec = QStringConverter::encodingForName(charset.toLatin1()).value_or(QStringConverter::Encoding::Utf8);
     }
 
     // Try to Open

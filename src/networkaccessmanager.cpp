@@ -141,9 +141,7 @@ struct ssl_protocol_option {
 const ssl_protocol_option ssl_protocol_options[] = {
     { "default", QSsl::SecureProtocols },
     { "tlsv1.2", QSsl::TlsV1_2 },
-    { "tlsv1.1", QSsl::TlsV1_1 },
-    { "tlsv1.0", QSsl::TlsV1_0 },
-    { "tlsv1", QSsl::TlsV1_0 },
+    { "tlsv1.3", QSsl::TlsV1_3 },
     { "any", QSsl::AnyProtocol },
     { 0, QSsl::UnknownProtocol }
 };
@@ -342,18 +340,18 @@ QNetworkReply* NetworkAccessManager::createRequest(Operation op, const QNetworkR
     QVariantList headers;
     foreach (QByteArray headerName, req.rawHeaderList()) {
         QVariantMap header;
-        header["name"] = QString::fromUtf8(headerName);
-        header["value"] = QString::fromUtf8(req.rawHeader(headerName));
+        header["name"] = headerName;
+        header["value"] = req.rawHeader(headerName);
         headers += header;
     }
 
     QVariantMap data;
     data["id"] = m_idCounter;
-    data["url"] = url.data();
+    data["url"] = url;
     data["method"] = toString(op);
     data["headers"] = headers;
     if (op == QNetworkAccessManager::PostOperation) {
-        data["postData"] = postData.data();
+        data["postData"] = postData;
     }
     data["time"] = QDateTime::currentDateTime();
 
@@ -435,7 +433,7 @@ void NetworkAccessManager::handleStarted()
     QVariantMap data;
     data["stage"] = "start";
     data["id"] = m_ids.value(reply);
-    data["url"] = reply->url().toEncoded().data();
+    data["url"] = reply->url().toEncoded();
     data["status"] = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute);
     data["statusText"] = reply->attribute(QNetworkRequest::HttpReasonPhraseAttribute);
     data["contentType"] = reply->header(QNetworkRequest::ContentTypeHeader);
@@ -479,7 +477,7 @@ void NetworkAccessManager::handleFinished(QNetworkReply* reply, const QVariant& 
     QVariantMap data;
     data["stage"] = "end";
     data["id"] = m_ids.value(reply);
-    data["url"] = reply->url().toEncoded().data();
+    data["url"] = reply->url().toEncoded();
     data["status"] = status;
     data["statusText"] = statusText;
     data["contentType"] = reply->header(QNetworkRequest::ContentTypeHeader);
@@ -516,7 +514,7 @@ void NetworkAccessManager::handleNetworkError(QNetworkReply::NetworkError error)
 
     QVariantMap data;
     data["id"] = m_ids.value(reply);
-    data["url"] = reply->url().toEncoded().data();
+    data["url"] = reply->url().toEncoded();
     data["errorCode"] = reply->error();
     data["errorString"] = reply->errorString();
     data["status"] = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute);
@@ -530,8 +528,8 @@ QVariantList NetworkAccessManager::getHeadersFromReply(const QNetworkReply* repl
     QVariantList headers;
     foreach (QByteArray headerName, reply->rawHeaderList()) {
         QVariantMap header;
-        header["name"] = QString::fromUtf8(headerName);
-        header["value"] = QString::fromUtf8(reply->rawHeader(headerName));
+        header["name"] = headerName;
+        header["value"] = reply->rawHeader(headerName);
         headers += header;
     }
 
