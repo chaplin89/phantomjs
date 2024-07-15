@@ -1061,6 +1061,9 @@ if __name__ == "__main__":
             if not runner.server_mode:
                 sys.exit(runner.run_tests())
             else:
+                print("Starting in server mode. Launch phatnomjs with:")
+                print("TEST_HTTPS_BASE=" + os.environ['TEST_HTTPS_BASE'])
+                print("TEST_HTTP_BASE=" + os.environ['TEST_HTTP_BASE'])
                 while input() != "quit":
                     pass
 
