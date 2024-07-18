@@ -3,7 +3,6 @@ project(phantomjs)
 
 set (CMAKE_CXX_STANDARD 11)
 
-set(Qt6WebKitWidgets_DIR /usr/local/lib/x86_64-linux-gnu/cmake/Qt6WebKitWidgets)
 find_package(Qt6 COMPONENTS Core Network WebKitWidgets REQUIRED)
 find_package(Threads REQUIRED)
 
