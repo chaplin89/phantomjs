@@ -89,7 +89,7 @@ QString REPL::_getClassName(QObject* obj) const
 QStringList REPL::_enumerateCompletions(QObject* obj) const
 {
     const QMetaObject* meta = obj->metaObject();
-    QMultiMap<QString, bool> completions;
+    QMap<QString, bool> completions;
 
     // List up slots, signals, and invokable methods
     const int methodOffset = meta->methodOffset();
@@ -122,7 +122,7 @@ QStringList REPL::_enumerateCompletions(QObject* obj) const
         completions.insert(name, true);
     }
 
-    return completions.uniqueKeys();
+    return completions.keys();
 }
 
 // private:
