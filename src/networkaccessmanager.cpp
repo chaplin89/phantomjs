@@ -314,7 +314,7 @@ QNetworkReply* NetworkAccessManager::createRequest(Operation op, const QNetworkR
 
     // Get the URL string before calling the superclass. Seems to work around
     // segfaults in Qt 4.8: https://gist.github.com/1430393
-    QByteArray url = req.url().toEncoded();
+    QString url = req.url().toString();
     QByteArray postData;
 
     // http://code.google.com/p/phantomjs/issues/detail?id=337
@@ -514,7 +514,7 @@ void NetworkAccessManager::handleNetworkError(QNetworkReply::NetworkError error)
 
     QVariantMap data;
     data["id"] = m_ids.value(reply);
-    data["url"] = reply->url().toEncoded();
+    data["url"] = reply->url();
     data["errorCode"] = reply->error();
     data["errorString"] = reply->errorString();
     data["status"] = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute);
