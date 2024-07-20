@@ -942,7 +942,7 @@ void WebPage::openUrl(const QString& address, const QVariant& op, const QVariant
     if (address == "about:blank") {
         m_mainFrame->setHtml(BLANK_HTML);
     } else {
-        QUrl url = QUrl::fromEncoded(QByteArray(address.toLatin1()));
+        QUrl url = QUrl(address);
 
         // Assume local file if scheme is empty
         if (url.scheme().isEmpty()) {
