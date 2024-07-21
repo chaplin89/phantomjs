@@ -351,7 +351,7 @@ QNetworkReply* NetworkAccessManager::createRequest(Operation op, const QNetworkR
     data["method"] = toString(op);
     data["headers"] = headers;
     if (op == QNetworkAccessManager::PostOperation) {
-        data["postData"] = postData;
+        data["postData"] = QString::fromUtf8(postData);
     }
     data["time"] = QDateTime::currentDateTime();
 
@@ -433,7 +433,7 @@ void NetworkAccessManager::handleStarted()
     QVariantMap data;
     data["stage"] = "start";
     data["id"] = m_ids.value(reply);
-    data["url"] = reply->url().toEncoded();
+    data["url"] = reply->url().toString();
     data["status"] = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute);
     data["statusText"] = reply->attribute(QNetworkRequest::HttpReasonPhraseAttribute);
     data["contentType"] = reply->header(QNetworkRequest::ContentTypeHeader);
@@ -477,7 +477,7 @@ void NetworkAccessManager::handleFinished(QNetworkReply* reply, const QVariant& 
     QVariantMap data;
     data["stage"] = "end";
     data["id"] = m_ids.value(reply);
-    data["url"] = reply->url().toEncoded();
+    data["url"] = reply->url().toString();
     data["status"] = status;
     data["statusText"] = statusText;
     data["contentType"] = reply->header(QNetworkRequest::ContentTypeHeader);
@@ -514,7 +514,7 @@ void NetworkAccessManager::handleNetworkError(QNetworkReply::NetworkError error)
 
     QVariantMap data;
     data["id"] = m_ids.value(reply);
-    data["url"] = reply->url();
+    data["url"] = reply->url().toString();
     data["errorCode"] = reply->error();
     data["errorString"] = reply->errorString();
     data["status"] = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute);
@@ -528,8 +528,8 @@ QVariantList NetworkAccessManager::getHeadersFromReply(const QNetworkReply* repl
     QVariantList headers;
     foreach (QByteArray headerName, reply->rawHeaderList()) {
         QVariantMap header;
-        header["name"] = headerName;
-        header["value"] = reply->rawHeader(headerName);
+        header["name"] = QString::fromUtf8(headerName);
+        header["value"] = QString::fromUtf8(reply->rawHeader(headerName));
         headers += header;
     }
 
